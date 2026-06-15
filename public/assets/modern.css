@@ -82,7 +82,7 @@ h1, h2, h3 { font-family: "Space Grotesk", sans-serif; line-height: 1.05; font-w
 
 /* ---------- hero ---------- */
 .hero { position: relative; min-height: 100svh; display: flex; align-items: center; overflow: hidden; }
-.hero-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; filter: grayscale(0.35) contrast(1.05); }
+.hero-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; filter: contrast(1.05) saturate(1.08); }
 .hero-overlay { position: absolute; inset: 0; z-index: 1;
   background:
     radial-gradient(70% 70% at 70% 25%, rgba(255,255,255,.06), transparent 60%),
@@ -117,11 +117,11 @@ section { position: relative; }
 .stat span { color: var(--muted); font-size: .9rem; letter-spacing: .04em; }
 
 /* services */
-.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.2rem; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.2rem; perspective: 1000px; }
 .card {
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-  padding: 2.2rem 1.8rem; transition: transform .4s var(--ease), border-color .4s, background .4s;
-  position: relative; overflow: hidden;
+  padding: 2.2rem 1.8rem; transition: transform .2s var(--ease), border-color .4s, background .4s;
+  position: relative; overflow: hidden; transform-style: preserve-3d;
 }
 .card::after { content: ""; position: absolute; left: 0; top: 0; height: 3px; width: 0; background: var(--accent); transition: width .4s var(--ease); }
 .card:hover { transform: translateY(-8px); border-color: rgba(255,255,255,.22); background: var(--surface-2); }
@@ -132,19 +132,25 @@ section { position: relative; }
 .card h3 { font-size: 1.3rem; margin-bottom: .6rem; }
 .card p { color: var(--muted); font-size: .96rem; }
 
-/* gallery */
-.gallery { columns: 3; column-gap: 1rem; }
-.gallery figure { break-inside: avoid; margin-bottom: 1rem; border-radius: 14px; overflow: hidden; cursor: pointer; position: relative; }
-.gallery img { width: 100%; transition: transform .6s var(--ease), filter .5s; filter: grayscale(1); }
-.gallery figure::after { content: ""; position: absolute; inset: 0; border: 2px solid transparent; border-radius: 14px; transition: border-color .3s; }
-.gallery figure:hover img { transform: scale(1.06); filter: grayscale(0); }
-.gallery figure:hover::after { border-color: var(--accent); }
+/* gallery — full colour photos, B&W frame */
+.gallery { columns: 4; column-gap: 1rem; }
+.gallery figure { break-inside: avoid; margin-bottom: 1rem; border-radius: 14px; overflow: hidden; cursor: pointer; position: relative; background: var(--surface); }
+.gallery figure.g-hidden { display: none; }
+.gallery img { width: 100%; transition: transform .6s var(--ease); display: block; }
+.gallery figure::before { content: ""; position: absolute; inset: 0; z-index: 1; background: linear-gradient(180deg, transparent 55%, rgba(0,0,0,.55)); opacity: 0; transition: opacity .35s; }
+.gallery figure::after { content: "⤢"; position: absolute; z-index: 2; bottom: 12px; right: 14px; color: #fff; font-size: 1.15rem; opacity: 0; transform: translateY(6px); transition: .35s; }
+.gallery figure:hover img { transform: scale(1.07); }
+.gallery figure:hover::before { opacity: 1; }
+.gallery figure:hover::after { opacity: 1; transform: none; }
+.gallery-more { text-align: center; margin-top: 2.5rem; }
+.gallery-more .btn b { color: var(--text); }
+.gallery-count { display: block; margin-top: .9rem; color: var(--muted); font-size: .85rem; }
 
 /* about */
 .about-grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 4rem; align-items: center; }
 .about-grid .media { border-radius: var(--radius); overflow: hidden; position: relative; }
-.about-grid .media img { width: 100%; aspect-ratio: 4/5; object-fit: cover; filter: grayscale(1); transition: filter .5s; }
-.about-grid .media:hover img { filter: grayscale(0); }
+.about-grid .media img { width: 100%; aspect-ratio: 4/5; object-fit: cover; transition: transform .6s var(--ease); }
+.about-grid .media:hover img { transform: scale(1.04); }
 .about-grid p { color: var(--muted); margin-bottom: 1.2rem; }
 .about-list { list-style: none; margin-top: 1.5rem; display: grid; gap: .9rem; }
 .about-list li { display: flex; gap: .8rem; align-items: flex-start; }

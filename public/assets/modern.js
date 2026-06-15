@@ -148,6 +148,39 @@
     });
   }
 
+  // ---- gallery: load more ----
+  var loadMore = document.getElementById("loadMore");
+  if (loadMore) {
+    var STEP = 16;
+    var shownEl = document.getElementById("gShown");
+    loadMore.addEventListener("click", function () {
+      var hidden = document.querySelectorAll(".gallery .g-item.g-hidden");
+      for (var i = 0; i < STEP && i < hidden.length; i++) hidden[i].classList.remove("g-hidden");
+      var shown = document.querySelectorAll(".gallery .g-item:not(.g-hidden)").length;
+      var total = document.querySelectorAll(".gallery .g-item").length;
+      if (shownEl) shownEl.textContent = shown;
+      if (shown >= total) {
+        loadMore.textContent = "All photos shown";
+        loadMore.disabled = true;
+        loadMore.style.opacity = ".5";
+      }
+    });
+  }
+
+  // ---- subtle 3D tilt on service cards (fine pointers only) ----
+  if (window.matchMedia("(pointer:fine)").matches) {
+    document.querySelectorAll(".card").forEach(function (card) {
+      card.addEventListener("mousemove", function (e) {
+        var r = card.getBoundingClientRect();
+        var px = (e.clientX - r.left) / r.width - 0.5;
+        var py = (e.clientY - r.top) / r.height - 0.5;
+        card.style.transform =
+          "translateY(-8px) rotateX(" + (-py * 5) + "deg) rotateY(" + px * 5 + "deg)";
+      });
+      card.addEventListener("mouseleave", function () { card.style.transform = ""; });
+    });
+  }
+
   // ---- footer year ----
   var yr = document.getElementById("yr");
   if (yr) yr.textContent = new Date().getFullYear();
