@@ -1,4 +1,6 @@
 import express from "express";
+import compression from "compression";
+import helmet from "helmet";
 import pg from "pg";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
@@ -9,6 +11,20 @@ const app = express();
 
 // Railway injects PORT. Fall back to 3000 locally.
 const PORT = process.env.PORT || 3000;
+
+// Security headers. CSP/COEP are disabled because the mirrored pages rely on
+// many inline scripts/styles and a few cross-origin resources (fonts, the
+// hero videos still served from the old site) that a strict policy would block.
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  })
+);
+
+// Gzip/Brotli-style compression for HTML/CSS/JS responses.
+app.use(compression());
 
 // ---------------------------------------------------------------------------
 // Database (Postgres) — provided by Railway as DATABASE_URL.
@@ -159,8 +175,24 @@ app.get("/admin/contacts.json", basicAuth, async (req, res) => {
 
 // ---------------------------------------------------------------------------
 // Static site (the mirrored pages + assets).
+// Long cache for assets (images/css/js rarely change); HTML always revalidated
+// so content edits show up immediately.
 // ---------------------------------------------------------------------------
-app.use(express.static(join(__dirname, "public")));
+app.use(
+  express.static(join(__dirname, "public"), {
+    maxAge: "30d",
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith(".html")) {
+        res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
+      }
+    },
+  })
+);
+
+// Custom 404 page for anything not matched above.
+app.use((req, res) => {
+  res.status(404).sendFile(join(__dirname, "public", "404.html"));
+});
 
 // ---------------------------------------------------------------------------
 initDb()
