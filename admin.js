@@ -1,5 +1,6 @@
 import express from "express";
 import bcrypt from "bcryptjs";
+import rateLimit from "express-rate-limit";
 import multer from "multer";
 import sharp from "sharp";
 import { existsSync, mkdirSync } from "fs";
@@ -33,6 +34,18 @@ const uploadRaw = multer({
 });
 
 const router = express.Router();
+
+// Brute-force protection on login (counts every POST attempt per IP).
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 15,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    if (req.session) req.session.flash = { t: "err", m: "Too many login attempts. Please wait 15 minutes and try again." };
+    res.redirect("/admin/login");
+  },
+});
 
 // ---------- helpers ----------
 function esc(s) {
@@ -117,7 +130,7 @@ router.get("/login", (req, res) => {
          <div style="margin-top:1.2rem"><button class="btn" type="submit">Log in</button></div>
        </form></div>`, req));
 });
-router.post("/login", async (req, res) => {
+router.post("/login", loginLimiter, async (req, res) => {
   const email = (req.body.email || "").toLowerCase().trim();
   const { rows } = await pool.query("SELECT * FROM users WHERE email=$1", [email]);
   const user = rows[0];

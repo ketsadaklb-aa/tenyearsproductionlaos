@@ -1,6 +1,7 @@
 import express from "express";
 import compression from "compression";
 import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import { readFileSync } from "fs";
@@ -15,10 +16,27 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const PUBLIC = join(__dirname, "public");
 
-app.set("trust proxy", true);
+// Trust exactly one proxy hop (Railway's edge) so req.ip is the real client
+// and can't be spoofed via X-Forwarded-For to evade rate limits.
+app.set("trust proxy", 1);
 app.use(
   helmet({
-    contentSecurityPolicy: false,
+    contentSecurityPolicy: {
+      useDefaults: true,
+      directives: {
+        "default-src": ["'self'"],
+        "script-src": ["'self'", "'unsafe-inline'"],
+        "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        "font-src": ["'self'", "https://fonts.gstatic.com", "data:"],
+        "img-src": ["'self'", "data:", "blob:", "https:"],
+        "media-src": ["'self'"],
+        "connect-src": ["'self'"],
+        "object-src": ["'none'"],
+        "frame-ancestors": ["'self'"],
+        "base-uri": ["'self'"],
+        "form-action": ["'self'"],
+      },
+    },
     crossOriginEmbedderPolicy: false,
     crossOriginResourcePolicy: { policy: "cross-origin" },
   })
@@ -50,8 +68,15 @@ function esc(s) {
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 }
 
-// ---- contact form -> Postgres ----
-app.post("/api/contact", async (req, res) => {
+// ---- contact form -> Postgres (rate-limited against spam) ----
+const contactLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { ok: false, error: "Too many messages from this network. Please try again later." },
+});
+app.post("/api/contact", contactLimiter, async (req, res) => {
   const b = req.body || {};
   if (b.website) return res.json({ ok: true });
   const name = (b.name || "").toString().trim();
