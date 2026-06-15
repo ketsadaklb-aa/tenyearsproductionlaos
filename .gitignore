@@ -17,3 +17,6 @@ mirror/site/
 *.m4v#*
 public/wp-content/uploads/**/*.mp4*
 public/wp-content/uploads/**/*.m4v*
+
+# …except the compressed hero video used by the homepage (57 MB, under GitHub's limit)
+!public/wp-content/uploads/2024/03/Website-1.mp4
