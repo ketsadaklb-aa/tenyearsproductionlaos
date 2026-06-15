@@ -30,7 +30,10 @@ def ensure_local(clean_path):
     if clean_path in ensured:
         return ensured[clean_path]
     rel = clean_path.lstrip("/")
-    if rel.lower().endswith(VIDEO_EXT):
+    # Strip any #fragment or ?query before checking the extension, so URLs like
+    # "Website-2.mp4#t=3" are still recognised as videos (and skipped).
+    base = rel.split("#", 1)[0].split("?", 1)[0]
+    if base.lower().endswith(VIDEO_EXT):
         ensured[clean_path] = False
         return False
     dest = os.path.join(PUBLIC, rel)

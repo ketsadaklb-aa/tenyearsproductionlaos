@@ -53,7 +53,19 @@ def save_asset(url):
     p = urllib.parse.urlparse(url)
     if p.netloc and p.netloc != HOST:
         return None  # external; leave untouched
+    # Only localize real static assets. NEVER treat page/API/query URLs as
+    # assets — e.g. the shortlink "/?p=11" would otherwise be stripped of its
+    # query, map to "index.html", and overwrite the home page with that page.
+    if p.query:
+        return None
     localpath = url_to_localpath(url)
+    ASSET_EXT = (
+        ".css", ".js", ".mjs", ".png", ".jpg", ".jpeg", ".gif", ".webp",
+        ".svg", ".ico", ".woff", ".woff2", ".ttf", ".eot", ".otf",
+        ".json", ".pdf", ".xml", ".map", ".mp4", ".m4v",
+    )
+    if not localpath.lower().endswith(ASSET_EXT):
+        return None  # page / feed / oembed / directory — not an asset
     if localpath.lower().endswith(VIDEO_EXT):
         return None  # skip videos for now
     if url in downloaded:

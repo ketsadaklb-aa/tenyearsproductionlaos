@@ -6,8 +6,14 @@ node_modules/
 # Full media backup (kept locally only — too large for git)
 mirror/site/
 
-# Videos: exceed GitHub's 100MB limit / large — handling later
+# Videos: exceed GitHub's 100MB limit / large — handling later.
+# Patterns include a trailing * to also catch fragment/query suffixes
+# like "Website-2.mp4#t=3" that a plain *.mp4 would miss.
 *.mp4
 *.m4v
 *.mov
 *.webm
+*.mp4#*
+*.m4v#*
+public/wp-content/uploads/**/*.mp4*
+public/wp-content/uploads/**/*.m4v*
