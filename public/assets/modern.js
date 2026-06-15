@@ -138,7 +138,7 @@
         })
         .catch(function () {
           msg.className = "form-msg err";
-          msg.textContent = "Sorry, something went wrong. Please call us at +856 20 5978 9979.";
+          msg.textContent = "Sorry, something went wrong. Please email sales@tenyearsproductionlaos.com or call +856 20 5978 9979.";
         })
         .finally(function () {
           btn.disabled = false;
