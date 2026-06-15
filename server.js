@@ -7,7 +7,7 @@ import { readFileSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 
-import { pool, initSchema, getGallery, getClients } from "./db.js";
+import { pool, initSchema, getGallery, getClients, getSettings } from "./db.js";
 import adminRouter, { UPLOAD_DIR } from "./admin.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -98,15 +98,35 @@ function renderClients(clients) {
     .join("");
 }
 
+function videoType(url = "") {
+  const u = url.toLowerCase();
+  if (u.endsWith(".webm")) return "video/webm";
+  if (u.endsWith(".mov")) return "video/quicktime";
+  if (u.endsWith(".m4v")) return "video/x-m4v";
+  return "video/mp4";
+}
+
 async function serveHome(req, res) {
   let html = homeBase;
+  let galleryHtml = "", clientsHtml = "", settings = {};
   try {
     if (pool) {
-      const [photos, clients] = await Promise.all([getGallery(), getClients()]);
-      html = html.replace("<!--GALLERY-->", renderGallery(photos))
-                 .replace("<!--CLIENTS-->", renderClients(clients));
+      const [photos, clients, s] = await Promise.all([getGallery(), getClients(), getSettings()]);
+      galleryHtml = renderGallery(photos);
+      clientsHtml = renderClients(clients);
+      settings = s;
     }
   } catch (e) { console.error("home render error:", e.message); }
+
+  const heroVideo = settings.hero_video_url || "/wp-content/uploads/2024/03/Website-3.mp4";
+  const heroPoster = settings.hero_poster_url || "/wp-content/uploads/2024/03/Website-3-poster.jpg";
+  html = html
+    .replace("<!--GALLERY-->", galleryHtml)
+    .replace("<!--CLIENTS-->", clientsHtml)
+    .split("__HERO_VIDEO__").join(esc(heroVideo))
+    .split("__HERO_POSTER__").join(esc(heroPoster))
+    .split("__HERO_TYPE__").join(videoType(heroVideo));
+
   res.set("Cache-Control", "public, max-age=0, must-revalidate");
   res.type("html").send(html);
 }

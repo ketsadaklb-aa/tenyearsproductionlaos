@@ -58,6 +58,20 @@ export async function initSchema() {
       visible BOOLEAN NOT NULL DEFAULT true,
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
+
+    CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL DEFAULT ''
+    );
+
+    CREATE TABLE IF NOT EXISTS documents (
+      id SERIAL PRIMARY KEY,
+      title TEXT NOT NULL DEFAULT '',
+      url TEXT NOT NULL,
+      filename TEXT NOT NULL DEFAULT '',
+      size_bytes BIGINT NOT NULL DEFAULT 0,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
   `);
 
   await seedIfEmpty();
@@ -103,6 +117,31 @@ async function seedIfEmpty() {
     }
     console.log(`✓ Seeded ${seed.photos.length} photos, ${seed.clients.length} clients`);
   }
+
+  // Default homepage hero video/poster (so they're editable from the back-office)
+  await pool.query(
+    `INSERT INTO settings (key, value) VALUES
+       ('hero_video_url', '/wp-content/uploads/2024/03/Website-3.mp4'),
+       ('hero_poster_url', '/wp-content/uploads/2024/03/Website-3-poster.jpg')
+     ON CONFLICT (key) DO NOTHING`
+  );
+}
+
+export async function getSettings() {
+  if (!pool) return {};
+  const { rows } = await pool.query("SELECT key, value FROM settings");
+  return Object.fromEntries(rows.map((r) => [r.key, r.value]));
+}
+export async function setSetting(key, value) {
+  await pool.query(
+    "INSERT INTO settings (key, value) VALUES ($1,$2) ON CONFLICT (key) DO UPDATE SET value=$2",
+    [key, value]
+  );
+}
+export async function getDocuments() {
+  if (!pool) return [];
+  const { rows } = await pool.query("SELECT * FROM documents ORDER BY id DESC");
+  return rows;
 }
 
 // ---- public content getters ----

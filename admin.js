@@ -4,9 +4,9 @@ import multer from "multer";
 import sharp from "sharp";
 import { existsSync, mkdirSync } from "fs";
 import { writeFile } from "fs/promises";
-import { join, dirname } from "path";
+import { join, dirname, extname } from "path";
 import { fileURLToPath } from "url";
-import { pool } from "./db.js";
+import { pool, getSettings, setSetting, getDocuments } from "./db.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -16,6 +16,22 @@ export const UPLOAD_DIR =
 if (!existsSync(UPLOAD_DIR)) mkdirSync(UPLOAD_DIR, { recursive: true });
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
+
+// Disk-based uploader for large files (video/PDF) — streamed straight to the
+// volume so big files don't sit in memory.
+const SAFE_EXT = /\.(mp4|m4v|mov|webm|pdf|jpg|jpeg|png|webp)$/i;
+const uploadRaw = multer({
+  storage: multer.diskStorage({
+    destination: UPLOAD_DIR,
+    filename: (req, file, cb) => {
+      const ext = (extname(file.originalname) || "").toLowerCase();
+      cb(null, `${Date.now().toString(36)}-${Math.round(performance.now())}${ext}`);
+    },
+  }),
+  limits: { fileSize: 400 * 1024 * 1024 }, // 400 MB
+  fileFilter: (req, file, cb) => cb(null, SAFE_EXT.test(file.originalname)),
+});
+
 const router = express.Router();
 
 // ---------- helpers ----------
@@ -42,7 +58,7 @@ function page(title, body, req) {
   const nav = u
     ? `<nav class="anav">
         <a href="/admin">Dashboard</a><a href="/admin/photos">Photos</a>
-        <a href="/admin/clients">Clients</a><a href="/admin/submissions">Submissions</a>
+        <a href="/admin/clients">Clients</a><a href="/admin/media">Media</a><a href="/admin/submissions">Submissions</a>
         ${u.role === "admin" ? '<a href="/admin/team">Team</a>' : ""}
         <span class="who">${esc(u.name)} · <a href="/admin/account">account</a> · <a href="/admin/logout">logout</a></span>
        </nav>`
@@ -332,6 +348,87 @@ router.post("/account/password", requireAuth, async (req, res) => {
     setFlash(req, "ok", "Password updated.");
   }
   res.redirect("/admin/account");
+});
+
+// ---------- media: hero video + documents (PDF etc.) ----------
+function fmtSize(n) {
+  n = Number(n) || 0;
+  if (n > 1048576) return (n / 1048576).toFixed(1) + " MB";
+  if (n > 1024) return (n / 1024).toFixed(0) + " KB";
+  return n + " B";
+}
+router.get("/media", requireAuth, async (req, res) => {
+  const s = await getSettings();
+  const docs = await getDocuments();
+  const docRows = docs.map((d) => `<tr>
+      <td><b>${esc(d.title || d.filename)}</b><br><span class="muted">${esc(d.filename)} · ${fmtSize(d.size_bytes)}</span></td>
+      <td><a href="${esc(d.url)}" target="_blank">Open</a></td>
+      <td><button class="btn ghost sm copy" data-url="${esc(d.url)}">Copy link</button></td>
+      <td><form method="post" action="/admin/documents/${d.id}/delete" onsubmit="return confirm('Delete this document?')"><button class="btn danger sm">Delete</button></form></td>
+    </tr>`).join("");
+  res.send(page("Media",
+    `<h1>Media & documents</h1>${flash(req)}
+
+     <div class="card">
+       <h2 style="margin-top:0">Homepage hero video</h2>
+       <video src="${esc(s.hero_video_url || "")}" muted controls playsinline style="max-width:360px;border-radius:10px;background:#000"></video>
+       <form method="post" action="/admin/media/hero-video" enctype="multipart/form-data">
+         <label>Replace hero video (MP4 recommended, up to 400 MB — it autoplays muted, so keep it short)</label>
+         <input type="file" name="video" accept="video/*"/>
+         <label>Poster image (optional — shows before the video loads)</label>
+         <input type="file" name="poster" accept="image/*"/>
+         <div style="margin-top:1rem"><button class="btn" type="submit">Update hero video</button></div>
+       </form>
+     </div>
+
+     <div class="card">
+       <h2 style="margin-top:0">Documents (PDF, catalogs, rate cards)</h2>
+       <form method="post" action="/admin/media/document" enctype="multipart/form-data">
+         <label>Title (optional)</label><input name="title" placeholder="e.g. 2026 Equipment Catalog"/>
+         <label>File (PDF or image, up to 400 MB)</label><input type="file" name="file" accept=".pdf,image/*" required/>
+         <div style="margin-top:1rem"><button class="btn" type="submit">Upload document</button></div>
+       </form>
+       <table style="margin-top:1.4rem"><thead><tr><th>Document</th><th></th><th></th><th></th></tr></thead>
+       <tbody>${docRows || '<tr><td colspan="4" class="muted">No documents yet.</td></tr>'}</tbody></table>
+       <p class="muted">Each document gets a public link your team can share or I can place on the site.</p>
+     </div>
+
+     <script>
+       document.querySelectorAll('.copy').forEach(function(b){
+         b.addEventListener('click',function(){
+           navigator.clipboard.writeText(location.origin+b.dataset.url);
+           b.textContent='Copied!'; setTimeout(function(){b.textContent='Copy link';},1500);
+         });
+       });
+     </script>`, req));
+});
+router.post("/media/hero-video", requireAuth,
+  uploadRaw.fields([{ name: "video", maxCount: 1 }, { name: "poster", maxCount: 1 }]),
+  async (req, res) => {
+    try {
+      const v = req.files?.video?.[0];
+      const p = req.files?.poster?.[0];
+      if (v) await setSetting("hero_video_url", `/uploads/${v.filename}`);
+      if (p) await setSetting("hero_poster_url", `/uploads/${p.filename}`);
+      setFlash(req, v || p ? "ok" : "err", v || p ? "Hero video updated." : "No file selected.");
+    } catch (e) { setFlash(req, "err", "Failed: " + e.message); }
+    res.redirect("/admin/media");
+  });
+router.post("/media/document", requireAuth, uploadRaw.single("file"), async (req, res) => {
+  try {
+    if (!req.file) throw new Error("No file (allowed: PDF/image)");
+    await pool.query(
+      "INSERT INTO documents (title, url, filename, size_bytes) VALUES ($1,$2,$3,$4)",
+      [req.body.title || "", `/uploads/${req.file.filename}`, req.file.originalname, req.file.size]
+    );
+    setFlash(req, "ok", "Document uploaded.");
+  } catch (e) { setFlash(req, "err", "Failed: " + e.message); }
+  res.redirect("/admin/media");
+});
+router.post("/documents/:id/delete", requireAuth, async (req, res) => {
+  await pool.query("DELETE FROM documents WHERE id=$1", [req.params.id]);
+  setFlash(req, "ok", "Document deleted.");
+  res.redirect("/admin/media");
 });
 
 export default router;
