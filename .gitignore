@@ -20,3 +20,6 @@ public/wp-content/uploads/**/*.m4v*
 
 # …except the compressed fireworks hero video used by the homepage (13 MB)
 !public/wp-content/uploads/2024/03/Website-3.mp4
+
+# Local dev upload dir (real uploads live on the Railway volume)
+uploads-local/
