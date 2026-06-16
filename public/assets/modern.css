@@ -38,11 +38,11 @@ h1, h2, h3 { font-family: "Space Grotesk", sans-serif; line-height: 1.05; font-w
   -webkit-text-fill-color: transparent; color: transparent;
 }
 .eyebrow {
-  display: inline-flex; align-items: center; gap: .6rem;
-  font-size: .8rem; font-weight: 600; letter-spacing: .18em; text-transform: uppercase;
-  color: var(--accent); margin-bottom: 1.25rem;
+  display: inline-flex; align-items: center; gap: .7rem;
+  font-size: .78rem; font-weight: 600; letter-spacing: .2em; text-transform: uppercase;
+  color: #b6b6c0; margin-bottom: 1.25rem;
 }
-.eyebrow::before { content: ""; width: 28px; height: 2px; background: var(--accent); display: inline-block; }
+.eyebrow::before { content: ""; width: 26px; height: 2px; background: var(--accent); display: inline-block; border-radius: 2px; }
 
 /* ---------- buttons ---------- */
 .btn {
@@ -52,10 +52,10 @@ h1, h2, h3 { font-family: "Space Grotesk", sans-serif; line-height: 1.05; font-w
   transition: transform .3s var(--ease), box-shadow .3s var(--ease), background .3s, color .3s;
   white-space: nowrap;
 }
-.btn-primary { background: var(--accent); color: #fff; box-shadow: 0 8px 30px rgba(230, 51, 41, .28); }
-.btn-primary:hover { transform: translateY(-3px); box-shadow: 0 14px 40px rgba(230, 51, 41, .42); }
-.btn-ghost { background: var(--surface); color: var(--text); border-color: var(--border); backdrop-filter: blur(10px); }
-.btn-ghost:hover { background: var(--surface-2); border-color: rgba(255,255,255,.25); transform: translateY(-3px); }
+.btn-primary { background: #fff; color: #0b0b0d; box-shadow: 0 8px 30px rgba(0, 0, 0, .35); }
+.btn-primary:hover { transform: translateY(-3px); background: #f1f1f3; box-shadow: 0 16px 44px rgba(255, 255, 255, .16); }
+.btn-ghost { background: var(--surface); color: var(--text); border-color: rgba(255,255,255,.18); backdrop-filter: blur(10px); }
+.btn-ghost:hover { background: var(--surface-2); border-color: rgba(255,255,255,.35); transform: translateY(-3px); }
 
 /* ---------- nav ---------- */
 .nav {
@@ -140,6 +140,7 @@ section { position: relative; }
 .gallery figure::before { content: ""; position: absolute; inset: 0; z-index: 1; background: linear-gradient(180deg, transparent 55%, rgba(0,0,0,.55)); opacity: 0; transition: opacity .35s; }
 .gallery figure::after { content: "⤢"; position: absolute; z-index: 2; bottom: 12px; right: 14px; color: #fff; font-size: 1.15rem; opacity: 0; transform: translateY(6px); transition: .35s; }
 .gallery figure:hover img { transform: scale(1.07); }
+.gallery figure:hover { box-shadow: 0 0 0 1px rgba(255,255,255,.25); }
 .gallery figure:hover::before { opacity: 1; }
 .gallery figure:hover::after { opacity: 1; transform: none; }
 .gallery-more { text-align: center; margin-top: 2.5rem; }
