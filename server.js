@@ -106,7 +106,7 @@ try { homeBase = readFileSync(join(PUBLIC, "index.html"), "utf8"); } catch {}
 function renderGallery(photos) {
   const figs = photos
     .map((p, i) =>
-      `<figure class="g-item${i >= INITIAL ? " g-hidden" : ""}"><img loading="lazy" src="${esc(p.url)}" alt="${esc(p.caption || "Ten Years Production Laos event")}" /></figure>`)
+      `<figure class="g-item${i >= INITIAL ? " g-hidden" : ""}"><img loading="lazy" decoding="async" src="${esc(p.url)}" alt="${esc(p.caption || "Ten Years Production Laos event in Vientiane")}" /></figure>`)
     .join("");
   let html = `<div class="gallery reveal" id="gallery">${figs}</div>`;
   if (photos.length > INITIAL) {
