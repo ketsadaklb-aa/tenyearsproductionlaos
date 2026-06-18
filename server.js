@@ -174,5 +174,27 @@ app.use((req, res) => res.status(404).sendFile(join(PUBLIC, "404.html")));
 initSchema()
   .catch((e) => console.error("initSchema error:", e.message))
   .finally(() => {
-    app.listen(PORT, () => console.log(`Ten Years Production Laos on http://localhost:${PORT}`));
+    const server = app.listen(PORT, () =>
+      console.log(`Ten Years Production Laos on http://localhost:${PORT}`)
+    );
+
+    // Junk/malformed HTTP from bots & port scanners triggers a parser
+    // "Parse Error". Answer 400 and close quietly instead of spamming stderr.
+    server.on("clientError", (err, socket) => {
+      if (socket.writable) socket.end("HTTP/1.1 400 Bad Request\r\n\r\n");
+    });
+
+    // Graceful shutdown so Railway redeploys exit cleanly (no false "crash").
+    const shutdown = (sig) => {
+      console.log(`${sig} received — shutting down gracefully`);
+      server.close(() => process.exit(0));
+      setTimeout(() => process.exit(0), 5000).unref();
+    };
+    process.on("SIGTERM", () => shutdown("SIGTERM"));
+    process.on("SIGINT", () => shutdown("SIGINT"));
+
+    // Last-resort safety net: a single bad request can never take the site down.
+    process.on("unhandledRejection", (e) =>
+      console.error("unhandledRejection:", e?.message || e)
+    );
   });
