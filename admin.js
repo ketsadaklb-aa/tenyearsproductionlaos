@@ -7,14 +7,13 @@ import { existsSync, mkdirSync } from "fs";
 import { writeFile } from "fs/promises";
 import { join, dirname, extname } from "path";
 import { fileURLToPath } from "url";
-import { pool, getSettings, setSetting, getDocuments } from "./db.js";
+import { pool, getSettings, setSetting, getDocuments, setModelHidden } from "./db.js";
+import { UPLOAD_DIR } from "./uploads.js";
+import { getAllCatalogueItems, applyVisibility, refreshCatalogue } from "./catalogue.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-export const UPLOAD_DIR =
-  process.env.UPLOAD_DIR ||
-  (existsSync("/data") ? "/data/uploads" : join(__dirname, "uploads-local"));
-if (!existsSync(UPLOAD_DIR)) mkdirSync(UPLOAD_DIR, { recursive: true });
+export { UPLOAD_DIR } from "./uploads.js";
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
 
@@ -71,7 +70,7 @@ function page(title, body, req) {
   const nav = u
     ? `<nav class="anav">
         <a href="/admin">Dashboard</a><a href="/admin/photos">Photos</a>
-        <a href="/admin/clients">Clients</a><a href="/admin/media">Media</a><a href="/admin/submissions">Submissions</a>
+        <a href="/admin/clients">Clients</a><a href="/admin/catalogue">Equipment</a><a href="/admin/media">Media</a><a href="/admin/submissions">Submissions</a>
         ${u.role === "admin" ? '<a href="/admin/team">Team</a>' : ""}
         <span class="who">${esc(u.name)} · <a href="/admin/account">account</a> · <a href="/admin/logout">logout</a></span>
        </nav>`
@@ -153,6 +152,7 @@ router.get("/", requireAuth, async (req, res) => {
      <div class="dash">
        <a href="/admin/photos"><b>${p.rows[0].n}</b>Gallery photos →</a>
        <a href="/admin/clients"><b>${c.rows[0].n}</b>Client logos →</a>
+       <a href="/admin/catalogue"><b>${getAllCatalogueItems().filter((i) => i.public).length}</b>Equipment live on site →</a>
        <a href="/admin/submissions"><b>${s.rows[0].unread}</b>New inquiries (${s.rows[0].n} total) →</a>
      </div>`, req));
 });
@@ -286,6 +286,81 @@ async function moveRow(table, id, dir) {
   await pool.query(`UPDATE ${table} SET sort_order=$1 WHERE id=$2`, [b.sort_order, a.id]);
   await pool.query(`UPDATE ${table} SET sort_order=$1 WHERE id=$2`, [a.sort_order, b.id]);
 }
+
+// ---------- equipment catalogue ----------
+// Read-only mirror of the ERP. The only thing editable here is whether a model
+// appears on /equipment.html — nothing written here touches the ERP.
+router.get("/catalogue", requireAuth, async (req, res) => {
+  const items = getAllCatalogueItems();
+  const shown = items.filter((i) => i.public).length;
+  const noPhoto = items.filter((i) => !i.photo).length;
+
+  const tiles = items.map((r) => {
+    const off = !r.public;
+    const why = !r.photo
+      ? '<span class="muted">no photo in ERP</span>'
+      : r.hiddenByAdmin
+      ? '<span class="muted">hidden</span>'
+      : "";
+    const shot = r.photo
+      ? `<img src="${esc(r.photo)}" loading="lazy" alt="" style="object-fit:contain;padding:8px"/>`
+      : `<div style="height:120px;display:grid;place-items:center;color:#555;font-size:.75rem">NO PHOTO</div>`;
+    return `
+    <div class="tile ${off ? "hidden-item" : ""}">
+      ${shot}
+      <div style="padding:.5rem .6rem 0;font-size:.8rem;line-height:1.35">${esc(r.name)}</div>
+      <div class="bar">
+        <form class="inline" method="post" action="/admin/catalogue/toggle">
+          <input type="hidden" name="model" value="${esc(r.name)}"/>
+          <button class="btn ghost sm" ${!r.photo ? "disabled title='Add a photo in the ERP first'" : ""}>${r.hiddenByAdmin ? "Show" : "Hide"}</button>
+        </form>
+        ${why}
+      </div>
+    </div>`;
+  }).join("");
+
+  res.send(page("Equipment catalogue",
+    `<h1>Equipment catalogue</h1>${flash(req)}
+     <div class="card">
+       <p><b>${shown}</b> of <b>${items.length}</b> models are live on
+          <a href="/equipment.html" target="_blank">the equipment page</a>.
+          ${noPhoto ? `<b>${noPhoto}</b> are held back because they have no photo in the ERP.` : ""}</p>
+       <p class="muted">Everything here is pulled from the ERP every 30 minutes — names, photos, categories
+          and descriptions are edited in the ERP, not here. Hiding a model only removes it from the public
+          website; it still quotes, tracks and books normally in the ERP.</p>
+       <form class="inline" method="post" action="/admin/catalogue/sync">
+         <button class="btn" type="submit">Sync from ERP now</button>
+       </form>
+     </div>
+     <div class="grid">${tiles}</div>`, req));
+});
+
+router.post("/catalogue/toggle", requireAuth, async (req, res) => {
+  const model = (req.body.model || "").toString();
+  const item = getAllCatalogueItems().find((i) => i.name === model);
+  if (!item) {
+    setFlash(req, "err", "That model is no longer in the ERP feed.");
+    return res.redirect("/admin/catalogue");
+  }
+  try {
+    await setModelHidden(model, !item.hiddenByAdmin);
+    await applyVisibility();
+    setFlash(req, "ok", `${model} is now ${item.hiddenByAdmin ? "hidden from" : "live on"} the website.`);
+  } catch (e) {
+    setFlash(req, "err", "Could not save: " + e.message);
+  }
+  res.redirect("/admin/catalogue");
+});
+
+router.post("/catalogue/sync", requireAuth, async (req, res) => {
+  try {
+    const r = await refreshCatalogue();
+    setFlash(req, "ok", `Synced — ${r.items.length} of ${getAllCatalogueItems().length} models live.`);
+  } catch (e) {
+    setFlash(req, "err", "Sync failed: " + e.message);
+  }
+  res.redirect("/admin/catalogue");
+});
 
 // ---------- submissions ----------
 router.get("/submissions", requireAuth, async (req, res) => {

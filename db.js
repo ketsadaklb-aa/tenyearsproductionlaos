@@ -64,6 +64,11 @@ export async function initSchema() {
       value TEXT NOT NULL DEFAULT ''
     );
 
+    CREATE TABLE IF NOT EXISTS catalogue_hidden (
+      model_name TEXT PRIMARY KEY,
+      hidden_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
     CREATE TABLE IF NOT EXISTS documents (
       id SERIAL PRIMARY KEY,
       title TEXT NOT NULL DEFAULT '',
@@ -118,6 +123,20 @@ async function seedIfEmpty() {
     console.log(`✓ Seeded ${seed.photos.length} photos, ${seed.clients.length} clients`);
   }
 
+  // Carry over the one model that used to be hidden in code, so the live page
+  // keeps looking the same and the choice becomes editable in /admin/catalogue.
+  const { rows: seeded } = await pool.query(
+    "SELECT value FROM settings WHERE key='catalogue_hidden_seeded'"
+  );
+  if (!seeded.length) {
+    await pool.query(
+      "INSERT INTO catalogue_hidden (model_name) VALUES ('Shure SM58 (Wireless)') ON CONFLICT DO NOTHING"
+    );
+    await pool.query(
+      "INSERT INTO settings (key, value) VALUES ('catalogue_hidden_seeded','1') ON CONFLICT (key) DO NOTHING"
+    );
+  }
+
   // Default homepage hero video/poster (so they're editable from the back-office)
   await pool.query(
     `INSERT INTO settings (key, value) VALUES
@@ -142,6 +161,26 @@ export async function getDocuments() {
   if (!pool) return [];
   const { rows } = await pool.query("SELECT * FROM documents ORDER BY id DESC");
   return rows;
+}
+
+// ---- equipment catalogue visibility ----
+// One row per ERP model name we do NOT want on the public equipment page.
+// The gear stays fully active in the ERP; this only controls the website.
+export async function getHiddenModels() {
+  if (!pool) return new Set();
+  const { rows } = await pool.query("SELECT model_name FROM catalogue_hidden");
+  return new Set(rows.map((r) => r.model_name.toLowerCase()));
+}
+export async function setModelHidden(modelName, hidden) {
+  if (!pool) return;
+  if (hidden) {
+    await pool.query(
+      "INSERT INTO catalogue_hidden (model_name) VALUES ($1) ON CONFLICT DO NOTHING",
+      [modelName]
+    );
+  } else {
+    await pool.query("DELETE FROM catalogue_hidden WHERE lower(model_name)=lower($1)", [modelName]);
+  }
 }
 
 // ---- public content getters ----

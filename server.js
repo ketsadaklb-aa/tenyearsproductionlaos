@@ -9,7 +9,8 @@ import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 
 import { pool, initSchema, getGallery, getClients, getSettings } from "./db.js";
-import adminRouter, { UPLOAD_DIR } from "./admin.js";
+import adminRouter from "./admin.js";
+import { UPLOAD_DIR } from "./uploads.js";
 import { getCatalogue, startCatalogueSync } from "./catalogue.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));

@@ -14,6 +14,13 @@
  * a hash of the source image: a 2 MB base64 blob becomes a set of cacheable
  * files the browser can lazy-load. The slim public copy is also kept on disk,
  * so the catalogue still renders while the ERP is restarting or unreachable.
+ *
+ * Two lists are kept in memory:
+ *   • `all`   — every model the ERP sent, shown in /admin/catalogue
+ *   • `state` — what the public page gets: `all` minus anything switched off in
+ *               the admin, minus anything with no photo
+ * Toggling an item in the admin re-filters `all` immediately, with no round
+ * trip back to the ERP.
  */
 import { createHash } from "crypto";
 import { existsSync, mkdirSync } from "fs";
@@ -21,7 +28,8 @@ import { readdir, readFile, rename, unlink, writeFile } from "fs/promises";
 import { join } from "path";
 import sharp from "sharp";
 
-import { UPLOAD_DIR } from "./admin.js";
+import { UPLOAD_DIR } from "./uploads.js";
+import { getHiddenModels } from "./db.js";
 
 const ERP_URL =
   process.env.ERP_CATALOG_URL ||
@@ -45,21 +53,15 @@ function categoryRank(name) {
   return i === -1 ? CATEGORY_ORDER.length : i;
 }
 
-// Gear we own but don't advertise on the public site — usually because another
-// entry already covers it. Matched on the exact ERP model name, so near-misses
-// like "Shure SM58 (Wired)" are unaffected. Add names here, or set
-// CATALOG_HIDDEN to a comma-separated list. Hiding here leaves the ERP alone:
-// the item still quotes, tracks and books normally inside the business.
-const HIDDEN_MODELS = new Set(
-  ["Shure SM58 (Wireless)", ...String(process.env.CATALOG_HIDDEN || "").split(",")]
-    .map((s) => s.trim().toLowerCase())
-    .filter(Boolean)
-);
-
-let state = { items: [], categories: [], syncedAt: null };
+let all = [];                                            // everything the ERP has
+let state = { items: [], categories: [], syncedAt: null }; // what the public sees
 
 export function getCatalogue() {
   return state;
+}
+/** Every ERP model, each flagged with why it is or isn't public. For the admin page. */
+export function getAllCatalogueItems() {
+  return all;
 }
 
 const DATA_URL = /^data:image\/[a-z.+-]+;base64,/i;
@@ -87,15 +89,21 @@ async function savePhoto(raw) {
   return PHOTO_PREFIX + name;
 }
 
-async function saveCache(data) {
+async function saveCache() {
   const tmp = CACHE_FILE + ".tmp";
-  await writeFile(tmp, JSON.stringify(data));
+  await writeFile(tmp, JSON.stringify({ all, syncedAt: state.syncedAt }));
   await rename(tmp, CACHE_FILE); // atomic: a crash mid-write can't truncate the cache
 }
 
 /** Drop photo files nothing points at any more. Only ever runs after a full,
  *  successful sync, and only inside the catalogue dir this module owns. */
-async function prunePhotos(keep) {
+async function prunePhotos() {
+  const keep = new Set(
+    all
+      .map((i) => i.photo)
+      .filter((p) => p?.startsWith(PHOTO_PREFIX))
+      .map((p) => p.slice(PHOTO_PREFIX.length))
+  );
   try {
     for (const f of await readdir(DIR)) {
       if (f.endsWith(".jpg") && !keep.has(f)) await unlink(join(DIR, f)).catch(() => {});
@@ -103,6 +111,39 @@ async function prunePhotos(keep) {
   } catch (e) {
     console.error("catalogue prune skipped:", e.message);
   }
+}
+
+/**
+ * Rebuild the public view from `all` + the admin's hide list. Cheap — no ERP
+ * call — so the admin page can call it straight after a toggle.
+ */
+export async function applyVisibility() {
+  let hidden = new Set();
+  try {
+    hidden = await getHiddenModels();
+  } catch (e) {
+    console.error("could not read catalogue hide list:", e.message);
+  }
+
+  for (const it of all) {
+    it.hiddenByAdmin = hidden.has(it.name.toLowerCase());
+    // Gear with no product shot never goes public: a blank card looks
+    // unfinished next to the real ones. Add the photo in the ERP to fix.
+    it.public = !it.hiddenByAdmin && !!it.photo;
+  }
+
+  const items = all
+    .filter((it) => it.public)
+    .map(({ id, name, category, description, photo }) => ({ id, name, category, description, photo }));
+
+  const counts = new Map();
+  for (const it of items) counts.set(it.category, (counts.get(it.category) || 0) + 1);
+  const categories = [...counts]
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => categoryRank(a.name) - categoryRank(b.name) || a.name.localeCompare(b.name));
+
+  state = { items, categories, syncedAt: state.syncedAt };
+  return state;
 }
 
 export async function refreshCatalogue() {
@@ -118,69 +159,45 @@ export async function refreshCatalogue() {
   }
   if (!Array.isArray(raw)) throw new Error("ERP catalogue feed was not an array");
 
-  const items = [];
-  let skipped = 0;
+  const next = [];
   for (const r of raw) {
     const name = String(r?.modelName ?? "").trim();
     if (!name) continue;
-    if (HIDDEN_MODELS.has(name.toLowerCase())) continue;
-
-    // A card with no product shot looks unfinished next to the real ones, so
-    // gear without a photo in the ERP stays off the public page entirely.
-    // Add the photo in the ERP and the next sync brings the item in.
-    const photo = await savePhoto(r?.imageUrl);
-    if (!photo) {
-      skipped++;
-      continue;
-    }
-
-    items.push({
+    next.push({
       id: r.id,
       name,
       category: String(r?.categoryName ?? "").trim() || "Other Equipment",
       description: String(r?.description ?? "").trim(),
-      photo,
+      photo: await savePhoto(r?.imageUrl),
     });
     // r.rentalDayRate / r.availableUnits / r.totalUnits are deliberately not
     // copied. Nothing downstream can leak what was never carried across.
   }
-  if (skipped) console.log(`  (${skipped} catalogue items hidden — no photo in the ERP)`);
 
-  items.sort(
+  next.sort(
     (a, b) =>
       categoryRank(a.category) - categoryRank(b.category) ||
       a.category.localeCompare(b.category) ||
       a.name.localeCompare(b.name)
   );
 
-  const counts = new Map();
-  for (const it of items) counts.set(it.category, (counts.get(it.category) || 0) + 1);
-  const categories = [...counts]
-    .map(([name, count]) => ({ name, count }))
-    .sort((a, b) => categoryRank(a.name) - categoryRank(b.name) || a.name.localeCompare(b.name));
-
-  const next = { items, categories, syncedAt: new Date().toISOString() };
-  await saveCache(next);
-  state = next;
-
-  await prunePhotos(
-    new Set(
-      items
-        .map((i) => i.photo)
-        .filter((p) => p?.startsWith(PHOTO_PREFIX))
-        .map((p) => p.slice(PHOTO_PREFIX.length))
-    )
-  );
-  return next;
+  all = next;
+  state.syncedAt = new Date().toISOString();
+  await applyVisibility();
+  await saveCache();
+  await prunePhotos();
+  return state;
 }
 
 export async function startCatalogueSync() {
   // Serve the last known catalogue immediately, before the ERP is even asked.
   try {
     const cached = JSON.parse(await readFile(CACHE_FILE, "utf8"));
-    if (Array.isArray(cached?.items)) {
-      state = cached;
-      console.log(`✓ Catalogue cache loaded: ${cached.items.length} items (synced ${cached.syncedAt})`);
+    if (Array.isArray(cached?.all)) {
+      all = cached.all;
+      state.syncedAt = cached.syncedAt ?? null;
+      await applyVisibility();
+      console.log(`✓ Catalogue cache loaded: ${state.items.length} public items (synced ${state.syncedAt})`);
     }
   } catch {
     /* no cache yet — first boot */
@@ -189,7 +206,11 @@ export async function startCatalogueSync() {
   const run = async () => {
     try {
       const r = await refreshCatalogue();
-      console.log(`✓ Catalogue synced from ERP: ${r.items.length} items in ${r.categories.length} categories`);
+      const off = all.length - r.items.length;
+      console.log(
+        `✓ Catalogue synced from ERP: ${r.items.length} of ${all.length} models public` +
+          (off ? ` (${off} hidden or missing a photo)` : "")
+      );
     } catch (e) {
       console.error(`catalogue sync failed (serving ${state.items.length} cached items):`, e.message);
     }
