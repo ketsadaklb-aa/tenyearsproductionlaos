@@ -10,6 +10,7 @@ import { dirname, join } from "path";
 
 import { pool, initSchema, getGallery, getClients, getSettings } from "./db.js";
 import adminRouter, { UPLOAD_DIR } from "./admin.js";
+import { getCatalogue, startCatalogueSync } from "./catalogue.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -98,6 +99,14 @@ app.post("/api/contact", contactLimiter, async (req, res) => {
   }
 });
 
+// ---- public equipment catalogue (synced from the ERP, prices stripped) ----
+app.get("/api/catalogue", (req, res) => {
+  const c = getCatalogue();
+  res.set("Cache-Control", "public, max-age=300");
+  res.json({ items: c.items, categories: c.categories, syncedAt: c.syncedAt });
+});
+app.get("/equipment", (req, res) => res.redirect(301, "/equipment.html"));
+
 // ---- dynamic homepage: inject gallery + clients from the database ----
 const INITIAL = 16;
 let homeBase = "";
@@ -174,6 +183,8 @@ app.use((req, res) => res.status(404).sendFile(join(PUBLIC, "404.html")));
 initSchema()
   .catch((e) => console.error("initSchema error:", e.message))
   .finally(() => {
+    startCatalogueSync();
+
     const server = app.listen(PORT, () =>
       console.log(`Ten Years Production Laos on http://localhost:${PORT}`)
     );

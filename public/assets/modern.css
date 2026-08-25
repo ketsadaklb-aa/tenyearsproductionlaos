@@ -241,6 +241,10 @@ form.contact-form { background: var(--surface); border: 1px solid var(--border);
   .gallery { columns: 2; }
 }
 @media (max-width: 560px) {
+  /* Narrow phones: the brand wordmark wrapped onto two lines and ran under
+     the "Get a Quote" button. Show the logo mark only and keep the CTA. */
+  .nav .brand span { display: none; }
+  .nav-cta .btn { padding: .7rem 1.15rem; font-size: .9rem; }
   .section-pad { padding: 4.5rem 0; }
   .gallery { columns: 1; }
   .hero-actions { width: 100%; }
