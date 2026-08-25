@@ -45,6 +45,17 @@ function categoryRank(name) {
   return i === -1 ? CATEGORY_ORDER.length : i;
 }
 
+// Gear we own but don't advertise on the public site — usually because another
+// entry already covers it. Matched on the exact ERP model name, so near-misses
+// like "Shure SM58 (Wired)" are unaffected. Add names here, or set
+// CATALOG_HIDDEN to a comma-separated list. Hiding here leaves the ERP alone:
+// the item still quotes, tracks and books normally inside the business.
+const HIDDEN_MODELS = new Set(
+  ["Shure SM58 (Wireless)", ...String(process.env.CATALOG_HIDDEN || "").split(",")]
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean)
+);
+
 let state = { items: [], categories: [], syncedAt: null };
 
 export function getCatalogue() {
@@ -112,6 +123,7 @@ export async function refreshCatalogue() {
   for (const r of raw) {
     const name = String(r?.modelName ?? "").trim();
     if (!name) continue;
+    if (HIDDEN_MODELS.has(name.toLowerCase())) continue;
 
     // A card with no product shot looks unfinished next to the real ones, so
     // gear without a photo in the ERP stays off the public page entirely.
