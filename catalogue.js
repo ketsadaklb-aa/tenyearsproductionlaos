@@ -108,19 +108,31 @@ export async function refreshCatalogue() {
   if (!Array.isArray(raw)) throw new Error("ERP catalogue feed was not an array");
 
   const items = [];
+  let skipped = 0;
   for (const r of raw) {
     const name = String(r?.modelName ?? "").trim();
     if (!name) continue;
+
+    // A card with no product shot looks unfinished next to the real ones, so
+    // gear without a photo in the ERP stays off the public page entirely.
+    // Add the photo in the ERP and the next sync brings the item in.
+    const photo = await savePhoto(r?.imageUrl);
+    if (!photo) {
+      skipped++;
+      continue;
+    }
+
     items.push({
       id: r.id,
       name,
       category: String(r?.categoryName ?? "").trim() || "Other Equipment",
       description: String(r?.description ?? "").trim(),
-      photo: await savePhoto(r?.imageUrl),
+      photo,
     });
     // r.rentalDayRate / r.availableUnits / r.totalUnits are deliberately not
     // copied. Nothing downstream can leak what was never carried across.
   }
+  if (skipped) console.log(`  (${skipped} catalogue items hidden — no photo in the ERP)`);
 
   items.sort(
     (a, b) =>
