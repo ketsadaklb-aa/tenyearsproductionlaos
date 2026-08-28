@@ -106,7 +106,6 @@ app.get("/api/catalogue", (req, res) => {
   res.set("Cache-Control", "public, max-age=300");
   res.json({ items: c.items, categories: c.categories, syncedAt: c.syncedAt });
 });
-app.get("/equipment", (req, res) => res.redirect(301, "/equipment.html"));
 
 // ---- dynamic homepage: inject gallery + clients from the database ----
 const INITIAL = 16;
@@ -165,12 +164,22 @@ async function serveHome(req, res) {
   res.set("Cache-Control", "public, max-age=0, must-revalidate");
   res.type("html").send(html);
 }
+// ---- clean URLs ----
+// /equipment.html permanently becomes /equipment. The static handler below is
+// configured with `extensions: ["html"]`, so the bare path still resolves to
+// the same file — no duplicate content, and old links keep working.
+app.get(/^\/(.+)\.html$/, (req, res) => {
+  const name = req.params[0];
+  const q = req.originalUrl.indexOf("?");
+  res.redirect(301, (name === "index" ? "/" : "/" + name) + (q === -1 ? "" : req.originalUrl.slice(q)));
+});
+
 app.get("/", serveHome);
-app.get("/index.html", serveHome);
 
 // ---- static site ----
 app.use(
   express.static(PUBLIC, {
+    extensions: ["html"], // /equipment -> public/equipment.html
     maxAge: "30d",
     setHeaders: (res, fp) => {
       if (fp.endsWith(".html")) res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
