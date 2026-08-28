@@ -1,0 +1,101 @@
+/* ============================================================
+   Ten Years AV Solutions — extends modern.css (same tokens/theme)
+   ============================================================ */
+
+.av-hero { padding: 10rem 0 4rem; position: relative; overflow: hidden; }
+.av-hero::before {
+  content: ""; position: absolute; top: -20%; right: -10%; width: 60vw; height: 60vw;
+  background: radial-gradient(circle, rgba(230,51,41,.13) 0%, transparent 62%);
+  pointer-events: none;
+}
+.av-hero h1 { font-size: clamp(2.3rem, 5.6vw, 4rem); margin-bottom: 1.2rem; }
+/* Headings pair a plain phrase with a .grad-text one; keep the gradient half
+   whole so a two-word phrase can't break and leave "in." alone on a line. */
+.section-head h2 .grad-text, .av-hero h1 .grad-text { white-space: nowrap; }
+.av-hero .lead { color: #c4c4c4; max-width: 64ch; font-size: 1.08rem; }
+.av-hero .hero-actions { display: flex; flex-wrap: wrap; gap: .8rem; margin-top: 2.2rem; }
+
+/* ---------- the distinction: temporary vs permanent ---------- */
+.split { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; margin-top: 2.5rem; }
+.split-card {
+  padding: 2rem 1.9rem; border-radius: var(--radius);
+  background: var(--surface); border: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: .8rem;
+}
+.split-card.is-this { border-color: rgba(230,51,41,.5); background: rgba(230,51,41,.06); }
+.split-card .tag {
+  font-size: .7rem; letter-spacing: .18em; text-transform: uppercase; font-weight: 600;
+  color: var(--muted);
+}
+.split-card.is-this .tag { color: var(--accent); }
+.split-card h3 { font-size: 1.3rem; line-height: 1.2; }
+.split-card .word { font-size: 2.4rem; font-family: "Space Grotesk", sans-serif; font-weight: 700; line-height: 1; letter-spacing: -.02em; }
+.split-card.is-that .word { color: #6e6e6e; }
+.split-card.is-this .word { color: var(--accent); }
+.split-card p { color: #b9b9b9; font-size: .94rem; }
+.split-card .go { margin-top: auto; padding-top: .8rem; font-size: .88rem; font-weight: 600; color: var(--text); }
+.split-card .go:hover { color: var(--accent); }
+.split-note {
+  margin-top: 1.4rem; text-align: center; color: var(--muted);
+  font-size: 1rem; letter-spacing: .01em;
+}
+.split-note b { color: var(--text); }
+
+/* ---------- process ---------- */
+.steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.1rem; margin-top: 2.8rem; counter-reset: s; }
+.step {
+  padding: 1.7rem 1.4rem; border-radius: var(--radius);
+  background: var(--surface); border: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: .6rem;
+}
+.step::before {
+  counter-increment: s; content: "0" counter(s);
+  font-family: "Space Grotesk", sans-serif; font-weight: 700; font-size: 1.5rem;
+  color: var(--accent); line-height: 1;
+}
+.step h3 { font-size: 1.05rem; }
+.step p { color: var(--muted); font-size: .89rem; }
+
+/* ---------- systems ---------- */
+.systems { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.1rem; margin-top: 2.8rem; }
+.system {
+  padding: 1.9rem 1.6rem; border-radius: var(--radius);
+  background: var(--surface); border: 1px solid var(--border);
+  transition: transform .3s var(--ease), border-color .3s;
+}
+.system:hover { transform: translateY(-4px); border-color: rgba(255,255,255,.26); }
+.system svg { width: 30px; color: var(--accent); margin-bottom: 1rem; }
+.system h3 { font-size: 1.1rem; margin-bottom: .6rem; }
+.system p { color: var(--muted); font-size: .9rem; }
+.system ul { list-style: none; margin-top: .9rem; display: flex; flex-wrap: wrap; gap: .4rem; }
+.system li {
+  font-size: .74rem; padding: .3rem .7rem; border-radius: 999px;
+  background: rgba(255,255,255,.05); border: 1px solid var(--border); color: #bdbdbd;
+}
+
+/* ---------- who we work with ---------- */
+.sectors { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.1rem; margin-top: 2.5rem; }
+.sector { padding: 1.6rem 1.5rem; border-radius: 14px; background: var(--surface); border: 1px solid var(--border); }
+.sector h3 { font-size: 1rem; margin-bottom: .5rem; }
+.sector p { color: var(--muted); font-size: .88rem; }
+
+/* ---------- closing CTA ---------- */
+.av-cta {
+  margin: 4rem 0 6rem; padding: 3.2rem 2.5rem; border-radius: 22px; text-align: center;
+  background: linear-gradient(180deg, rgba(230,51,41,.10) 0%, rgba(255,255,255,.03) 100%);
+  border: 1px solid rgba(230,51,41,.3);
+}
+.av-cta h2 { font-size: clamp(1.6rem, 3.4vw, 2.3rem); margin-bottom: .9rem; }
+.av-cta p { color: #c2c2c2; max-width: 56ch; margin: 0 auto 1.8rem; }
+.av-cta .hero-actions { display: flex; flex-wrap: wrap; gap: .8rem; justify-content: center; }
+
+@media (max-width: 860px) {
+  .steps { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 720px) {
+  .av-hero { padding: 8rem 0 2.5rem; }
+  .split { grid-template-columns: 1fr; }
+  .steps { grid-template-columns: 1fr; }
+  .av-cta { padding: 2.4rem 1.4rem; margin: 3rem 0 4rem; }
+  .av-hero .hero-actions .btn, .av-cta .hero-actions .btn { flex: 1 1 100%; justify-content: center; }
+}
