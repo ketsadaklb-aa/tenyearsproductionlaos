@@ -74,6 +74,17 @@ export async function initSchema() {
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
 
+    CREATE TABLE IF NOT EXISTS av_brands (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      logo_url TEXT NOT NULL DEFAULT '',
+      category TEXT NOT NULL DEFAULT '',
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      visible BOOLEAN NOT NULL DEFAULT true,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+    ALTER TABLE av_brands ADD COLUMN IF NOT EXISTS category TEXT NOT NULL DEFAULT '';
+
     CREATE TABLE IF NOT EXISTS catalogue_hidden (
       model_name TEXT PRIMARY KEY,
       hidden_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -131,6 +142,46 @@ async function seedIfEmpty() {
       );
     }
     console.log(`✓ Seeded ${seed.photos.length} photos, ${seed.clients.length} clients`);
+  }
+
+  // Seed the brand strip with manufacturers that actually appear in our own
+  // inventory, so the section is populated before any logo is uploaded. Names
+  // only — logo files are trademarked and get added deliberately in the admin.
+  const { rows: brandSeeded } = await pool.query(
+    "SELECT value FROM settings WHERE key='av_brands_seeded'"
+  );
+  if (!brandSeeded.length) {
+    // Logo files supplied by the business. Each carries what it is actually
+    // used for, so the strip reads as a capability list rather than a wall of
+    // marks. "CM" has no usable logo file yet and falls back to a wordmark.
+    const brands = [
+      ["Shure", "shure", "Microphones & wireless"],
+      ["Sennheiser", "sennheiser", "Microphones & wireless"],
+      ["AKG", "akg", "Microphones"],
+      ["JBL", "jbl", "Loudspeakers"],
+      ["d&b audiotechnik", "dandb-audiotechnik", "Loudspeakers"],
+      ["Electro-Voice", "electro-voice", "Loudspeakers"],
+      ["dBTechnologies", "dbtechnologies", "Loudspeakers"],
+      ["Soundvision", "soundvision", "Line array & install speakers"],
+      ["DiGiCo", "digico", "Digital mixing"],
+      ["Midas", "midas", "Digital mixing"],
+      ["Yamaha", "yamaha", "Mixing & installed audio"],
+      ["Behringer", "behringer", "Mixing & amplification"],
+      ["dbx", "dbx", "Signal processing"],
+      ["Bosch", "bosch", "Conference & paging"],
+      ["CM", "", "Cable & connectors"],
+    ];
+    let bi = 0;
+    for (const [name, slug, category] of brands) {
+      await pool.query(
+        "INSERT INTO av_brands (name, logo_url, category, sort_order) VALUES ($1,$2,$3,$4)",
+        [name, slug ? `/assets/brands/${slug}.png` : "", category, bi++]
+      );
+    }
+    await pool.query(
+      "INSERT INTO settings (key, value) VALUES ('av_brands_seeded','1') ON CONFLICT (key) DO NOTHING"
+    );
+    console.log(`✓ Seeded ${brands.length} AV brands`);
   }
 
   // Seed the installation photos supplied for the AV Solutions page. Guarded by
@@ -208,6 +259,18 @@ export async function getAvProjects({ all = false } = {}) {
   if (!pool) return [];
   const { rows } = await pool.query(
     `SELECT * FROM av_projects ${all ? "" : "WHERE visible = true"}
+     ORDER BY sort_order ASC, id ASC`
+  );
+  return rows;
+}
+
+// ---- AV Solutions brands ----
+// A brand may have no logo file yet; the page falls back to a wordmark, so the
+// strip looks intentional before anyone uploads anything.
+export async function getAvBrands({ all = false } = {}) {
+  if (!pool) return [];
+  const { rows } = await pool.query(
+    `SELECT * FROM av_brands ${all ? "" : "WHERE visible = true"}
      ORDER BY sort_order ASC, id ASC`
   );
   return rows;

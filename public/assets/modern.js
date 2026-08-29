@@ -80,7 +80,7 @@
   }
 
   // ---- marquees: duplicate content so the loop has no visible seam ----
-  document.querySelectorAll("#marquee, .pm-track").forEach(function (track) {
+  document.querySelectorAll("#marquee, .pm-track, .bm-track").forEach(function (track) {
     track.innerHTML += track.innerHTML;
   });
 

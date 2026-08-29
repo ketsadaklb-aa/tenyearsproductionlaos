@@ -8,7 +8,7 @@ import { readFileSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 
-import { pool, initSchema, getGallery, getClients, getSettings, getAvProjects } from "./db.js";
+import { pool, initSchema, getGallery, getClients, getSettings, getAvProjects, getAvBrands } from "./db.js";
 import adminRouter from "./admin.js";
 import { UPLOAD_DIR } from "./uploads.js";
 import { getCatalogue, startCatalogueSync } from "./catalogue.js";
@@ -207,13 +207,48 @@ function renderAvProjects(rows) {
     </section>`;
 }
 
+function renderAvBrands(rows) {
+  if (!rows.length) return "";
+  const items = rows
+    .map((r) => {
+      const mark = r.logo_url
+        ? `<img loading="lazy" decoding="async" src="${esc(r.logo_url)}" alt="${esc(r.name)}" />`
+        : `<span class="bm-word">${esc(r.name)}</span>`;
+      // The category is what stops this being a vague wall of logos — it says
+      // what each brand is actually specified for.
+      return `<span class="bm-item"${r.category ? ` title="${esc(r.name)} — ${esc(r.category)}"` : ""}>
+            <span class="bm-mark">${mark}</span>
+            ${r.category ? `<span class="bm-cat">${esc(r.category)}</span>` : ""}
+          </span>`;
+    })
+    .join("\n          ");
+  return `<section class="section-pad" id="brands">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="eyebrow">Equipment we supply</span>
+          <h2>Brands we specify — <span class="grad-text">or yours.</span></h2>
+          <p>We recommend equipment to suit the room, the use and the budget. If your organisation has already standardised on a brand, or a tender names one, we supply and install that instead.</p>
+        </div>
+      </div>
+      <div class="brand-marquee">
+        <div class="bm-track">
+          ${items}
+        </div>
+      </div>
+    </section>`;
+}
+
 async function serveAv(req, res) {
-  let projects = [];
+  let projects = [], brands = [];
   try {
-    if (pool) projects = await getAvProjects();
-  } catch (e) { console.error("av projects error:", e.message); }
+    if (pool) [projects, brands] = await Promise.all([getAvProjects(), getAvBrands()]);
+  } catch (e) { console.error("av page data error:", e.message); }
   res.set("Cache-Control", "public, max-age=0, must-revalidate");
-  res.type("html").send(avBase.replace("<!--PROJECTS-->", renderAvProjects(projects)));
+  res.type("html").send(
+    avBase
+      .replace("<!--PROJECTS-->", renderAvProjects(projects))
+      .replace("<!--BRANDS-->", renderAvBrands(brands))
+  );
 }
 app.get("/av-solutions", serveAv);
 
