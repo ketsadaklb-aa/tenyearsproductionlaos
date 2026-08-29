@@ -85,22 +85,44 @@
   background: rgba(255,255,255,.05); border: 1px solid var(--border); color: #bdbdbd;
 }
 
-/* ---------- installed work ---------- */
-/* Reuses .gallery from modern.css. Three columns rather than the homepage's
-   four: this set is small, and four leaves an empty column while the browser
-   balances by height. */
-#work .gallery { columns: 3; }
-/* Title only on hover, over its own scrim — the shared figure gradient starts
-   too low to cover a caption on a short panoramic photo. */
-#work .g-cap {
-  position: absolute; z-index: 2; inset: auto 0 0 0;
-  padding: 2rem .9rem .75rem; pointer-events: none;
-  font-size: .82rem; font-weight: 600; line-height: 1.3; color: #fff;
-  background: linear-gradient(0deg, rgba(0,0,0,.9) 20%, transparent 100%);
-  opacity: 0; transform: translateY(6px); transition: .35s;
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+/* ---------- installed work: photo marquee ---------- */
+/* Standalone rather than reusing .marquee — those rules size and white-box
+   client logos, which would fight photographs. Shares only the `scroll`
+   keyframes and the duplicate-the-track trick in modern.js. */
+.photo-marquee {
+  margin-top: 2.8rem; overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
 }
-#work .gallery figure:hover .g-cap { opacity: 1; transform: none; }
+.pm-track {
+  display: flex; gap: 1rem; width: max-content; align-items: stretch;
+  animation: scroll 46s linear infinite;
+}
+.photo-marquee:hover .pm-track { animation-play-state: paused; }
+.pm-item {
+  position: relative; flex-shrink: 0; margin: 0;
+  height: 300px; border-radius: 16px; overflow: hidden; cursor: zoom-in;
+  border: 1px solid var(--border); background: var(--bg-2);
+}
+.pm-item img {
+  height: 100%; width: auto; max-width: none; display: block;
+  object-fit: cover; transition: transform .6s var(--ease);
+}
+.pm-item:hover img { transform: scale(1.05); }
+.pm-item::after {
+  content: "⤢"; position: absolute; z-index: 2; pointer-events: none;
+  bottom: 10px; right: 13px; color: #fff; font-size: 1.05rem;
+  opacity: 0; transform: translateY(6px); transition: .35s;
+}
+.pm-item:hover::after { opacity: 1; transform: none; }
+.pm-item figcaption {
+  position: absolute; z-index: 1; inset: auto 0 0 0; pointer-events: none;
+  padding: 2rem .95rem .8rem 1rem;
+  font-size: .82rem; font-weight: 600; line-height: 1.3; color: #fff;
+  background: linear-gradient(0deg, rgba(0,0,0,.9) 18%, transparent 100%);
+  opacity: 0; transform: translateY(6px); transition: .35s;
+}
+.pm-item:hover figcaption { opacity: 1; transform: none; }
 
 /* ---------- who we work with ---------- */
 .sectors { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.1rem; margin-top: 2.5rem; }
@@ -122,13 +144,21 @@
   .steps { grid-template-columns: repeat(2, 1fr); }
   /* #work's own column count outranks the .gallery media queries in
      modern.css, so it has to step down here too. */
-  #work .gallery { columns: 2; }
+  .pm-item { height: 230px; }
 }
 @media (max-width: 720px) {
   .av-hero { padding: 8rem 0 3rem; min-height: 0; }
+  .pm-item { height: 190px; border-radius: 12px; }
   .av-hero::before { opacity: .3; }
   .split { grid-template-columns: 1fr; }
   .steps { grid-template-columns: 1fr; }
   .av-cta { padding: 2.4rem 1.4rem; margin: 3rem 0 4rem; }
   .av-hero .hero-actions .btn, .av-cta .hero-actions .btn { flex: 1 1 100%; justify-content: center; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* No auto-scroll — let the visitor swipe through instead of freezing the
+     track mid-loop, which would hide most of the photos. */
+  .pm-track { animation: none; width: auto; }
+  .photo-marquee { overflow-x: auto; -webkit-mask-image: none; mask-image: none; }
 }

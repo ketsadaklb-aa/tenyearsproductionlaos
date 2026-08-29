@@ -79,16 +79,15 @@
     });
   }
 
-  // ---- clients marquee: duplicate for seamless loop ----
-  var track = document.getElementById("marquee");
-  if (track) {
+  // ---- marquees: duplicate content so the loop has no visible seam ----
+  document.querySelectorAll("#marquee, .pm-track").forEach(function (track) {
     track.innerHTML += track.innerHTML;
-  }
+  });
 
   // ---- gallery lightbox ----
   var lb = document.getElementById("lightbox");
   var lbImg = document.getElementById("lbImg");
-  document.querySelectorAll(".gallery img").forEach(function (img) {
+  document.querySelectorAll(".gallery img, .pm-track img").forEach(function (img) {
     img.addEventListener("click", function () {
       lbImg.src = img.src;
       lbImg.alt = img.alt;

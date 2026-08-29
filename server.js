@@ -180,14 +180,14 @@ try { avBase = readFileSync(join(PUBLIC, "av-solutions.html"), "utf8"); } catch 
 
 function renderAvProjects(rows) {
   if (!rows.length) return "";
-  // Same markup as the homepage gallery, so it inherits that styling and the
-  // click-to-enlarge lightbox in modern.js. Captions ride along on hover
-  // rather than taking permanent layout space.
+  // A photo marquee, same idea as the client-logo strip: modern.js duplicates
+  // the track so the loop is seamless, and it pauses on hover so a visitor can
+  // read a caption or click through to the lightbox.
   const figs = rows
     .map(
-      (r) => `<figure class="g-item">
+      (r) => `<figure class="pm-item">
             <img loading="lazy" decoding="async" src="${esc(r.photo_url)}" alt="${esc([r.title, r.detail].filter(Boolean).join(" — ") || "Ten Years AV Solutions installation")}" />
-            ${r.title ? `<figcaption class="g-cap">${esc(r.title)}</figcaption>` : ""}
+            ${r.title ? `<figcaption>${esc(r.title)}</figcaption>` : ""}
           </figure>`
     )
     .join("\n          ");
@@ -198,7 +198,9 @@ function renderAvProjects(rows) {
           <h2>Recent <span class="grad-text">installations.</span></h2>
           <p>A sample of permanent systems we have specified, installed and commissioned in Laos.</p>
         </div>
-        <div class="gallery reveal">
+      </div>
+      <div class="photo-marquee reveal">
+        <div class="pm-track">
           ${figs}
         </div>
       </div>
