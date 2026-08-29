@@ -153,7 +153,6 @@ async function seedIfEmpty() {
   if (!brandSeeded.length) {
     // Logo files supplied by the business. Each carries what it is actually
     // used for, so the strip reads as a capability list rather than a wall of
-    // marks. "CM" has no usable logo file yet and falls back to a wordmark.
     const brands = [
       ["Shure", "shure", "Microphones & wireless"],
       ["Sennheiser", "sennheiser", "Microphones & wireless"],
@@ -170,7 +169,7 @@ async function seedIfEmpty() {
       ["Behringer", "behringer", "Mixing & amplification"],
       ["dbx", "dbx", "Signal processing"],
       ["Bosch", "bosch", "Conference & paging"],
-      ["CM", "", "Cable & connectors"],
+      ["CM", "cm", "Cable & connectors"],
     ];
     let bi = 0;
     for (const [name, slug, category] of brands) {

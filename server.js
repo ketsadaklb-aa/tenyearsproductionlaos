@@ -212,7 +212,7 @@ function renderAvBrands(rows) {
   const items = rows
     .map((r) => {
       const mark = r.logo_url
-        ? `<img loading="lazy" decoding="async" src="${esc(r.logo_url)}" alt="${esc(r.name)}" />`
+        ? `<img decoding="async" src="${esc(r.logo_url)}" alt="${esc(r.name)}" />`
         : `<span class="bm-word">${esc(r.name)}</span>`;
       // The category is what stops this being a vague wall of logos — it says
       // what each brand is actually specified for.

@@ -77,6 +77,8 @@ h1, h2, h3 { font-family: "Space Grotesk", sans-serif; line-height: 1.05; font-w
 .nav-links a::after { content: ""; position: absolute; left: 0; bottom: -6px; width: 0; height: 2px; background: var(--accent); transition: width .3s var(--ease); }
 .nav-links a:hover::after { width: 100%; }
 .nav-cta { display: flex; align-items: center; gap: 1rem; }
+/* Shown only inside the mobile menu panel, where there is room for it. */
+.nav-menu-cta { display: none; }
 .burger { display: none; flex-direction: column; gap: 5px; background: none; border: 0; cursor: pointer; padding: 8px; }
 .burger span { width: 24px; height: 2px; background: var(--text); transition: .3s; }
 
@@ -238,15 +240,25 @@ form.contact-form { background: var(--surface); border: 1px solid var(--border);
   .nav-links a { font-size: 1.2rem; }
   .burger { display: flex; z-index: 101; }
   .nav-cta .btn-ghost { display: none; }
+  .nav-menu-cta {
+    display: inline-flex; justify-content: center; margin-top: .6rem;
+    padding: .85rem 1.8rem; border-radius: 999px;
+    background: #fff; color: #0b0b0d; font-size: 1rem; font-weight: 600;
+  }
+  .nav-menu-cta::after { display: none; }
   .about-grid, .contact-grid { grid-template-columns: 1fr; gap: 2.5rem; }
   .stats { grid-template-columns: repeat(2, 1fr); gap: 2rem; }
   .gallery { columns: 2; }
 }
 @media (max-width: 560px) {
-  /* Narrow phones: the brand wordmark wrapped onto two lines and ran under
-     the "Get a Quote" button. Show the logo mark only and keep the CTA. */
-  .nav .brand span { display: none; }
-  .nav-cta .btn { padding: .7rem 1.15rem; font-size: .9rem; }
+  /* Narrow phones: the CTA pill crowded out the burger and left the company
+     unidentified. The pill moves into the menu (.nav-menu-cta) so the bar can
+     be logo + name + burger, which is what a header is for. */
+  .nav-cta .btn { display: none; }
+  .nav .brand { min-width: 0; }
+  .nav .brand span { font-size: .92rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .nav .brand span small { display: none; }
+  .nav .brand img { width: 34px; height: 34px; }
   .section-pad { padding: 4.5rem 0; }
   .gallery { columns: 1; }
   .hero-actions { width: 100%; }
