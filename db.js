@@ -163,6 +163,7 @@ async function seedIfEmpty() {
       ["Electro-Voice", "electro-voice", "Loudspeakers"],
       ["dBTechnologies", "dbtechnologies", "Loudspeakers"],
       ["Soundvision", "soundvision", "Line array & install speakers"],
+      ["SoundWork", "soundwork", "Line array & install speakers"],
       ["DiGiCo", "digico", "Digital mixing"],
       ["Midas", "midas", "Digital mixing"],
       ["Yamaha", "yamaha", "Mixing & installed audio"],
