@@ -332,7 +332,16 @@ app.use(
     extensions: ["html"], // /equipment -> public/equipment.html
     maxAge: "30d",
     setHeaders: (res, fp) => {
-      if (fp.endsWith(".html")) res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
+      if (fp.endsWith(".html")) {
+        res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
+      } else if (fp.endsWith(".js") || fp.endsWith(".css")) {
+        // Scripts and styles change together with the HTML that loads them. A
+        // 30-day cache meant a phone could run last week's JS against this
+        // week's markup — which is how two burger handlers ended up bound at
+        // once, cancelling each other out and leaving the menu button dead.
+        // These files are a few KB; revalidating costs a 304.
+        res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
+      }
     },
   })
 );
