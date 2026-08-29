@@ -7,7 +7,7 @@ import { existsSync, mkdirSync } from "fs";
 import { writeFile } from "fs/promises";
 import { join, dirname, extname } from "path";
 import { fileURLToPath } from "url";
-import { pool, getSettings, setSetting, getDocuments, setModelHidden } from "./db.js";
+import { pool, getSettings, setSetting, getDocuments, setModelHidden, getAvProjects } from "./db.js";
 import { UPLOAD_DIR } from "./uploads.js";
 import { getAllCatalogueItems, applyVisibility, refreshCatalogue } from "./catalogue.js";
 
@@ -70,7 +70,7 @@ function page(title, body, req) {
   const nav = u
     ? `<nav class="anav">
         <a href="/admin">Dashboard</a><a href="/admin/photos">Photos</a>
-        <a href="/admin/clients">Clients</a><a href="/admin/catalogue">Equipment</a><a href="/admin/media">Media</a><a href="/admin/submissions">Submissions</a>
+        <a href="/admin/clients">Clients</a><a href="/admin/catalogue">Equipment</a><a href="/admin/av-projects">AV Projects</a><a href="/admin/media">Media</a><a href="/admin/submissions">Submissions</a>
         ${u.role === "admin" ? '<a href="/admin/team">Team</a>' : ""}
         <span class="who">${esc(u.name)} · <a href="/admin/account">account</a> · <a href="/admin/logout">logout</a></span>
        </nav>`
@@ -147,12 +147,14 @@ router.get("/", requireAuth, async (req, res) => {
   const p = await pool.query("SELECT count(*)::int n FROM gallery_photos");
   const c = await pool.query("SELECT count(*)::int n FROM clients");
   const s = await pool.query("SELECT count(*)::int n, count(*) FILTER (WHERE NOT handled)::int unread FROM contacts");
+  const av = await pool.query("SELECT count(*)::int n FROM av_projects WHERE visible");
   res.send(page("Dashboard",
     `<h1>Welcome, ${esc(req.session.user.name)}</h1>${flash(req)}
      <div class="dash">
        <a href="/admin/photos"><b>${p.rows[0].n}</b>Gallery photos →</a>
        <a href="/admin/clients"><b>${c.rows[0].n}</b>Client logos →</a>
        <a href="/admin/catalogue"><b>${getAllCatalogueItems().filter((i) => i.public).length}</b>Equipment live on site →</a>
+       <a href="/admin/av-projects"><b>${av.rows[0].n}</b>AV project photos →</a>
        <a href="/admin/submissions"><b>${s.rows[0].unread}</b>New inquiries (${s.rows[0].n} total) →</a>
      </div>`, req));
 });
@@ -360,6 +362,81 @@ router.post("/catalogue/sync", requireAuth, async (req, res) => {
     setFlash(req, "err", "Sync failed: " + e.message);
   }
   res.redirect("/admin/catalogue");
+});
+
+// ---------- AV Solutions installation projects ----------
+router.get("/av-projects", requireAuth, async (req, res) => {
+  const rows = await getAvProjects({ all: true });
+  const tiles = rows.map((r, i) => `
+    <div class="tile ${r.visible ? "" : "hidden-item"}">
+      <img src="${esc(r.photo_url)}" loading="lazy" alt="" style="height:150px;object-fit:cover"/>
+      <form method="post" action="/admin/av-projects/${r.id}/save" style="padding:.6rem">
+        <input name="title" value="${esc(r.title)}" placeholder="Title" style="margin-bottom:.4rem"/>
+        <input name="detail" value="${esc(r.detail)}" placeholder="Short detail — what, where"/>
+        <div class="bar" style="padding:.5rem 0 0">
+          <button class="btn sm" type="submit">Save</button>
+        </div>
+      </form>
+      <div class="bar" style="padding-top:0">
+        <form class="inline" method="post" action="/admin/av-projects/${r.id}/move"><input type="hidden" name="dir" value="-1"/><button class="btn ghost sm" ${i === 0 ? "disabled" : ""}>↑</button></form>
+        <form class="inline" method="post" action="/admin/av-projects/${r.id}/move"><input type="hidden" name="dir" value="1"/><button class="btn ghost sm" ${i === rows.length - 1 ? "disabled" : ""}>↓</button></form>
+        <form class="inline" method="post" action="/admin/av-projects/${r.id}/toggle"><button class="btn ghost sm">${r.visible ? "Hide" : "Show"}</button></form>
+        <form class="inline" method="post" action="/admin/av-projects/${r.id}/delete" onsubmit="return confirm('Delete this project photo?')"><button class="btn danger sm">Delete</button></form>
+      </div>
+    </div>`).join("");
+
+  res.send(page("AV Projects",
+    `<h1>AV installation projects (${rows.filter(r => r.visible).length} shown)</h1>${flash(req)}
+     <div class="card">
+       <form method="post" action="/admin/av-projects/upload" enctype="multipart/form-data">
+         <label>Add installation photos (several at once — they're auto-resized)</label>
+         <input type="file" name="photos" accept="image/*" multiple required/>
+         <label style="margin-top:.8rem">Title (optional — applied to all in this upload)</label>
+         <input name="title" placeholder="e.g. Indoor LED wall, ministry conference hall"/>
+         <label style="margin-top:.8rem">Detail (optional)</label>
+         <input name="detail" placeholder="e.g. 4×3 m P2.5 indoor wall, Vientiane, 2026"/>
+         <div style="margin-top:1rem"><button class="btn" type="submit">Upload</button></div>
+       </form>
+     </div>
+     <p class="muted">These appear on <a href="/av-solutions" target="_blank">the AV Solutions page</a>.
+        Only photos of real completed installation work belong here — it is the evidence
+        institutional clients judge you on. Edit a title and press Save; use ↑ ↓ to reorder.</p>
+     <div class="grid">${tiles}</div>`, req));
+});
+
+router.post("/av-projects/upload", requireAuth, upload.array("photos", 30), async (req, res) => {
+  try {
+    const { rows } = await pool.query("SELECT COALESCE(MAX(sort_order),0) m FROM av_projects");
+    let order = rows[0].m + 1;
+    for (const f of req.files || []) {
+      const url = await processAndSave(f, { logo: false });
+      await pool.query(
+        "INSERT INTO av_projects (photo_url, title, detail, sort_order) VALUES ($1,$2,$3,$4)",
+        [url, (req.body.title || "").trim(), (req.body.detail || "").trim(), order++]
+      );
+    }
+    setFlash(req, "ok", `${(req.files || []).length} project photo(s) added.`);
+  } catch (e) { setFlash(req, "err", "Upload failed: " + e.message); }
+  res.redirect("/admin/av-projects");
+});
+router.post("/av-projects/:id/save", requireAuth, async (req, res) => {
+  await pool.query("UPDATE av_projects SET title=$1, detail=$2 WHERE id=$3",
+    [(req.body.title || "").trim(), (req.body.detail || "").trim(), req.params.id]);
+  setFlash(req, "ok", "Saved.");
+  res.redirect("/admin/av-projects");
+});
+router.post("/av-projects/:id/toggle", requireAuth, async (req, res) => {
+  await pool.query("UPDATE av_projects SET visible = NOT visible WHERE id=$1", [req.params.id]);
+  res.redirect("/admin/av-projects");
+});
+router.post("/av-projects/:id/delete", requireAuth, async (req, res) => {
+  await pool.query("DELETE FROM av_projects WHERE id=$1", [req.params.id]);
+  setFlash(req, "ok", "Project photo deleted.");
+  res.redirect("/admin/av-projects");
+});
+router.post("/av-projects/:id/move", requireAuth, async (req, res) => {
+  await moveRow("av_projects", req.params.id, parseInt(req.body.dir, 10));
+  res.redirect("/admin/av-projects");
 });
 
 // ---------- submissions ----------

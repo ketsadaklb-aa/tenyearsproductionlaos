@@ -64,6 +64,16 @@ export async function initSchema() {
       value TEXT NOT NULL DEFAULT ''
     );
 
+    CREATE TABLE IF NOT EXISTS av_projects (
+      id SERIAL PRIMARY KEY,
+      photo_url TEXT NOT NULL,
+      title TEXT NOT NULL DEFAULT '',
+      detail TEXT NOT NULL DEFAULT '',
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      visible BOOLEAN NOT NULL DEFAULT true,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
     CREATE TABLE IF NOT EXISTS catalogue_hidden (
       model_name TEXT PRIMARY KEY,
       hidden_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -123,6 +133,36 @@ async function seedIfEmpty() {
     console.log(`✓ Seeded ${seed.photos.length} photos, ${seed.clients.length} clients`);
   }
 
+  // Seed the installation photos supplied for the AV Solutions page. Guarded by
+  // a settings key rather than a row count, so clearing the section out from the
+  // admin doesn't make them reappear on the next boot.
+  const { rows: avSeeded } = await pool.query(
+    "SELECT value FROM settings WHERE key='av_projects_seeded'"
+  );
+  if (!avSeeded.length) {
+    const seed = [
+      ["/assets/av/hall-led-wall.jpg", "Main hall LED wall with flanking displays",
+       "Centre wall plus two side screens, installed for a conference hall in Vientiane."],
+      ["/assets/av/install-ceremony-hall.jpg", "Indoor LED wall, ceremony hall",
+       "Large-format indoor wall installed for state ceremonies, Vientiane."],
+      ["/assets/av/install-draw-hall.jpg", "Broadcast draw hall",
+       "Stage LED wall and side monitors for a live televised draw, Vientiane."],
+      ["/assets/av/install-commissioning.jpg", "Panel alignment during commissioning",
+       "Our engineer aligning modules on an installed indoor wall before handover."],
+    ];
+    let i = 0;
+    for (const [url, title, detail] of seed) {
+      await pool.query(
+        "INSERT INTO av_projects (photo_url, title, detail, sort_order) VALUES ($1,$2,$3,$4)",
+        [url, title, detail, i++]
+      );
+    }
+    await pool.query(
+      "INSERT INTO settings (key, value) VALUES ('av_projects_seeded','1') ON CONFLICT (key) DO NOTHING"
+    );
+    console.log(`✓ Seeded ${seed.length} AV installation projects`);
+  }
+
   // Carry over the one model that used to be hidden in code, so the live page
   // keeps looking the same and the choice becomes editable in /admin/catalogue.
   const { rows: seeded } = await pool.query(
@@ -160,6 +200,16 @@ export async function setSetting(key, value) {
 export async function getDocuments() {
   if (!pool) return [];
   const { rows } = await pool.query("SELECT * FROM documents ORDER BY id DESC");
+  return rows;
+}
+
+// ---- AV Solutions installation projects ----
+export async function getAvProjects({ all = false } = {}) {
+  if (!pool) return [];
+  const { rows } = await pool.query(
+    `SELECT * FROM av_projects ${all ? "" : "WHERE visible = true"}
+     ORDER BY sort_order ASC, id ASC`
+  );
   return rows;
 }
 

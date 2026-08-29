@@ -8,7 +8,7 @@ import { readFileSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 
-import { pool, initSchema, getGallery, getClients, getSettings } from "./db.js";
+import { pool, initSchema, getGallery, getClients, getSettings, getAvProjects } from "./db.js";
 import adminRouter from "./admin.js";
 import { UPLOAD_DIR } from "./uploads.js";
 import { getCatalogue, startCatalogueSync } from "./catalogue.js";
@@ -173,6 +173,44 @@ app.get(/^\/(.+)\.html$/, (req, res) => {
   const q = req.originalUrl.indexOf("?");
   res.redirect(301, (name === "index" ? "/" : "/" + name) + (q === -1 ? "" : req.originalUrl.slice(q)));
 });
+
+// ---- AV Solutions page: inject the installation project gallery ----
+let avBase = "";
+try { avBase = readFileSync(join(PUBLIC, "av-solutions.html"), "utf8"); } catch {}
+
+function renderAvProjects(rows) {
+  if (!rows.length) return "";
+  const cards = rows
+    .map(
+      (r, i) => `<figure class="proj">
+            <img loading="${i < 2 ? "eager" : "lazy"}" decoding="async" src="${esc(r.photo_url)}" alt="${esc(r.title || "Ten Years AV Solutions installation")}" />
+            ${r.title || r.detail ? `<figcaption>${r.title ? `<b>${esc(r.title)}</b>` : ""}${r.detail ? `<span>${esc(r.detail)}</span>` : ""}</figcaption>` : ""}
+          </figure>`
+    )
+    .join("\n          ");
+  return `<section class="section-pad" id="work">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="eyebrow">Installed work</span>
+          <h2>Recent <span class="grad-text">installations.</span></h2>
+          <p>A sample of permanent systems we have specified, installed and commissioned in Laos.</p>
+        </div>
+        <div class="projects">
+          ${cards}
+        </div>
+      </div>
+    </section>`;
+}
+
+async function serveAv(req, res) {
+  let projects = [];
+  try {
+    if (pool) projects = await getAvProjects();
+  } catch (e) { console.error("av projects error:", e.message); }
+  res.set("Cache-Control", "public, max-age=0, must-revalidate");
+  res.type("html").send(avBase.replace("<!--PROJECTS-->", renderAvProjects(projects)));
+}
+app.get("/av-solutions", serveAv);
 
 app.get("/", serveHome);
 
