@@ -200,6 +200,10 @@ async function seedIfEmpty() {
        "Stage LED wall and side monitors for a live televised draw, Vientiane."],
       ["/assets/av/install-commissioning.jpg", "Panel alignment during commissioning",
        "Our engineer aligning modules on an installed indoor wall before handover."],
+      ["/assets/av/install-moic-p3.jpg", "Ministry of Industry and Commerce",
+       "Indoor P3 fine-pitch LED wall, Vientiane."],
+      ["/assets/av/install-edl-lobby.jpg", "EDL — Électricité du Laos",
+       "Front-of-house LED display in the head office lobby, Vientiane."],
     ];
     let i = 0;
     for (const [url, title, detail] of seed) {
