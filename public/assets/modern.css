@@ -137,8 +137,10 @@ section { position: relative; }
 .gallery figure { break-inside: avoid; margin-bottom: 1rem; border-radius: 14px; overflow: hidden; cursor: pointer; position: relative; background: var(--surface); }
 .gallery figure.g-hidden { display: none; }
 .gallery img { width: 100%; transition: transform .6s var(--ease); display: block; }
-.gallery figure::before { content: ""; position: absolute; inset: 0; z-index: 1; background: linear-gradient(180deg, transparent 55%, rgba(0,0,0,.55)); opacity: 0; transition: opacity .35s; }
-.gallery figure::after { content: "⤢"; position: absolute; z-index: 2; bottom: 12px; right: 14px; color: #fff; font-size: 1.15rem; opacity: 0; transform: translateY(6px); transition: .35s; }
+/* pointer-events:none — these sit over the <img>, and without it they swallow
+   the click the lightbox handler is bound to. */
+.gallery figure::before { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none; background: linear-gradient(180deg, transparent 55%, rgba(0,0,0,.55)); opacity: 0; transition: opacity .35s; }
+.gallery figure::after { content: "⤢"; position: absolute; z-index: 2; pointer-events: none; bottom: 12px; right: 14px; color: #fff; font-size: 1.15rem; opacity: 0; transform: translateY(6px); transition: .35s; }
 .gallery figure:hover img { transform: scale(1.07); }
 .gallery figure:hover { box-shadow: 0 0 0 1px rgba(255,255,255,.25); }
 .gallery figure:hover::before { opacity: 1; }

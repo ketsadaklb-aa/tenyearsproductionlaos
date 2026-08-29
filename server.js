@@ -180,11 +180,14 @@ try { avBase = readFileSync(join(PUBLIC, "av-solutions.html"), "utf8"); } catch 
 
 function renderAvProjects(rows) {
   if (!rows.length) return "";
-  const cards = rows
+  // Same markup as the homepage gallery, so it inherits that styling and the
+  // click-to-enlarge lightbox in modern.js. Captions ride along on hover
+  // rather than taking permanent layout space.
+  const figs = rows
     .map(
-      (r, i) => `<figure class="proj">
-            <img loading="${i < 2 ? "eager" : "lazy"}" decoding="async" src="${esc(r.photo_url)}" alt="${esc(r.title || "Ten Years AV Solutions installation")}" />
-            ${r.title || r.detail ? `<figcaption>${r.title ? `<b>${esc(r.title)}</b>` : ""}${r.detail ? `<span>${esc(r.detail)}</span>` : ""}</figcaption>` : ""}
+      (r) => `<figure class="g-item">
+            <img loading="lazy" decoding="async" src="${esc(r.photo_url)}" alt="${esc([r.title, r.detail].filter(Boolean).join(" — ") || "Ten Years AV Solutions installation")}" />
+            ${r.title ? `<figcaption class="g-cap">${esc(r.title)}</figcaption>` : ""}
           </figure>`
     )
     .join("\n          ");
@@ -195,8 +198,8 @@ function renderAvProjects(rows) {
           <h2>Recent <span class="grad-text">installations.</span></h2>
           <p>A sample of permanent systems we have specified, installed and commissioned in Laos.</p>
         </div>
-        <div class="projects">
-          ${cards}
+        <div class="gallery reveal">
+          ${figs}
         </div>
       </div>
     </section>`;
