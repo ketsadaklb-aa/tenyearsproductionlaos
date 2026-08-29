@@ -284,14 +284,13 @@ function renderAvBrands(rows) {
   const items = rows
     .map((r) => {
       const mark = r.logo_url
-        ? `<img decoding="async" src="${esc(r.logo_url)}" alt="${esc(r.name)}" />`
+        ? `<img loading="lazy" decoding="async" src="${esc(r.logo_url)}" alt="${esc(r.name)}" />`
         : `<span class="bm-word">${esc(r.name)}</span>`;
-      // The category is what stops this being a vague wall of logos — it says
-      // what each brand is actually specified for.
-      return `<span class="bm-item"${r.category ? ` title="${esc(r.name)} — ${esc(r.category)}"` : ""}>
+      return `<li class="bm-item">
             <span class="bm-mark">${mark}</span>
+            <span class="bm-name">${esc(r.name)}</span>
             ${r.category ? `<span class="bm-cat">${esc(r.category)}</span>` : ""}
-          </span>`;
+          </li>`;
     })
     .join("\n          ");
   return `<section class="section-pad" id="brands">
@@ -301,11 +300,9 @@ function renderAvBrands(rows) {
           <h2>Brands we specify — <span class="grad-text">or yours.</span></h2>
           <p>We recommend equipment to suit the room, the use and the budget. If your organisation has already standardised on a brand, or a tender names one, we supply and install that instead.</p>
         </div>
-      </div>
-      <div class="brand-marquee">
-        <div class="bm-track">
+        <ul class="brand-grid">
           ${items}
-        </div>
+        </ul>
       </div>
     </section>`;
 }
