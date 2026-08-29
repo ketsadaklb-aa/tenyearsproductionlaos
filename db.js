@@ -204,6 +204,8 @@ async function seedIfEmpty() {
        "Indoor P3 fine-pitch LED wall, Vientiane."],
       ["/assets/av/install-edl-lobby.jpg", "EDL — Électricité du Laos",
        "Front-of-house LED display in the head office lobby, Vientiane."],
+      ["/assets/av/install-mfa-conference.jpg", "Ministry of Foreign Affairs",
+       "Soundvision delegate conference system in the main hall, Vientiane."],
     ];
     let i = 0;
     for (const [url, title, detail] of seed) {
