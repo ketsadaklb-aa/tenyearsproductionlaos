@@ -125,10 +125,11 @@
 .pm-item:hover figcaption { opacity: 1; transform: none; }
 
 /* ---------- who we work with ---------- */
-.sectors { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.1rem; margin-top: 2.5rem; }
+.sectors { display: grid; grid-template-columns: repeat(auto-fit, minmax(258px, 1fr)); gap: 1rem; margin-top: 2.5rem; }
 .sector { padding: 1.6rem 1.5rem; border-radius: 14px; background: var(--surface); border: 1px solid var(--border); }
 .sector h3 { font-size: 1rem; margin-bottom: .5rem; }
-.sector p { color: var(--muted); font-size: .88rem; }
+.sector p { color: var(--muted); font-size: .87rem; }
+.sectors-note { margin-top: 1.6rem; color: var(--muted); font-size: .92rem; }
 
 /* ---------- closing CTA ---------- */
 .av-cta {
