@@ -21,6 +21,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/assets/modern.css" />
     <link rel="stylesheet" href="/assets/catalogue.css" />
+    <!--CAT_SCHEMA-->
   </head>
   <body>
     <!-- ===================== NAV ===================== -->
@@ -75,14 +76,14 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></svg>
           <input id="eqSearch" type="search" placeholder="Search equipment — e.g. moving head, line array, truss…" aria-label="Search equipment" autocomplete="off" />
         </div>
-        <div class="chips" id="eqChips"></div>
+        <div class="chips" id="eqChips"><!--CAT_CHIPS--></div>
       </div>
     </div>
 
     <!-- ===================== GRID ===================== -->
     <div class="wrap">
-      <p class="cat-count" id="eqCount">Loading catalogue…</p>
-      <div class="cat-grid" id="eqGrid"></div>
+      <p class="cat-count" id="eqCount"><!--CAT_COUNT--></p>
+      <div class="cat-grid" id="eqGrid"><!--CAT_GRID--></div>
       <div class="cat-empty" id="eqEmpty" hidden>
         <b>Nothing matches that search.</b>
         We carry more than what is listed here — tell us what you need and we will source it.

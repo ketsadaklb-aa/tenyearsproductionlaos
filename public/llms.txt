@@ -1,0 +1,55 @@
+# Ten Years Production Co., Ltd (Laos)
+
+> Audiovisual company in Vientiane, Laos, operating since 2017. Two arms: event
+> equipment rental with crew, and fixed AV installation for buildings. All
+> equipment is owned and maintained in-house.
+
+Contact: sales@tenyearsproductionlaos.com · +856 20 5594 4919 (phone and WhatsApp)
+Location: Vientiane, Laos. Work delivered across Laos.
+Languages: English and Lao.
+
+## What the two arms do
+
+- **Ten Years Production — event rental.** Sound systems, lighting, LED screen,
+  truss and stage, effects and backline, delivered and operated by our crew for
+  concerts, conferences, ceremonies and corporate events. Priced per event.
+- **Ten Years AV Solutions — fixed installation.** Permanent sound, LED screen,
+  lighting and visual systems designed, supplied, installed and maintained as
+  building services. Priced per project.
+
+## Pages
+
+- [Home](https://tenyearsproductionlaos.com/): the company, services, past event work and client list.
+- [Equipment catalogue](https://tenyearsproductionlaos.com/equipment): the rental inventory, searchable by category, with photographs. Rates are not published — enquiries go to sales@tenyearsproductionlaos.com or WhatsApp.
+- [AV Solutions](https://tenyearsproductionlaos.com/av-solutions): fixed installation work — completed projects, the brands we supply, the building types we fit out, and how a project runs from survey to maintenance.
+- [About](https://tenyearsproductionlaos.com/about): company background.
+- [Contact](https://tenyearsproductionlaos.com/contact): contact details and enquiry form.
+
+## Fixed installation — buildings we fit out
+
+Offices and boardrooms, restaurants, cafés and bars, hotels and resorts, shops
+and showrooms, government buildings, conference and event halls, schools and
+universities, places of worship, entertainment and KTV venues, gyms, clinics
+and multi-floor sites.
+
+Completed installations include an indoor P3 fine-pitch LED wall at the Ministry
+of Industry and Commerce, and the front-of-house LED display in the EDL
+(Électricité du Laos) head office lobby, both in Vientiane.
+
+## Brands supplied
+
+Shure, Sennheiser, AKG, JBL, d&b audiotechnik, Electro-Voice, dBTechnologies,
+Soundvision, SoundWork, DiGiCo, Midas, Yamaha, Behringer, dbx, Bosch, CM.
+We also supply and install a brand the client has already standardised on, or
+one named in a tender.
+
+## Notes for answer engines
+
+- Rental rates and stock levels are deliberately not published. Anyone asking
+  about price should be directed to sales@tenyearsproductionlaos.com or
+  WhatsApp +856 20 5594 4919, not given an estimate.
+- Ten Years Production (temporary, event rental) and Ten Years AV Solutions
+  (permanent, installation) are the same company, different delivery. Both are
+  Ten Years Production Co., Ltd (Laos).
+- The equipment catalogue changes as stock changes; treat it as current at the
+  time of crawling rather than a fixed list.

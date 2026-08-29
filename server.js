@@ -174,6 +174,78 @@ app.get(/^\/(.+)\.html$/, (req, res) => {
   res.redirect(301, (name === "index" ? "/" : "/" + name) + (q === -1 ? "" : req.originalUrl.slice(q)));
 });
 
+// ---- equipment page: render the catalogue into the HTML ----
+// The grid is built client-side for search and filtering, but that left the
+// raw HTML empty. Google runs JavaScript; most AI crawlers do not, so the
+// whole inventory was invisible to them. Render it server-side and let the
+// script take over for interaction.
+let eqBase = "";
+try { eqBase = readFileSync(join(PUBLIC, "equipment.html"), "utf8"); } catch {}
+
+function renderCatalogueGrid(items) {
+  return items
+    .map(
+      (it, i) => `<button class="eq-card" type="button" data-i="${i}">
+            <div class="eq-shot"><img loading="${i < 12 ? "eager" : "lazy"}" decoding="async" src="${esc(it.photo)}" alt="${esc(it.name)}" /></div>
+            <div class="eq-body">
+              <span class="eq-cat">${esc(it.category)}</span>
+              <h3>${esc(it.name)}</h3>
+              <span class="eq-ask">Ask for a price →</span>
+            </div>
+          </button>`
+    )
+    .join("\n          ");
+}
+
+function renderCatalogueChips(categories, total) {
+  return (
+    `<button class="chip on" data-cat="">All<span class="n">${total}</span></button>` +
+    categories
+      .map(
+        (c) => `<button class="chip" data-cat="${esc(c.name)}">${esc(c.name)}<span class="n">${c.count}</span></button>`
+      )
+      .join("")
+  );
+}
+
+// An ItemList of what we stock. No price or availability is published here,
+// so no Offer is claimed — only that the item exists and what it is.
+function renderCatalogueSchema(items) {
+  if (!items.length) return "";
+  const data = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: "Ten Years Production rental equipment catalogue",
+    numberOfItems: items.length,
+    itemListElement: items.map((it, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      item: {
+        "@type": "Product",
+        name: it.name,
+        category: it.category,
+        image: `https://tenyearsproductionlaos.com${it.photo}`,
+        ...(it.description ? { description: it.description } : {}),
+      },
+    })),
+  };
+  return `<script type="application/ld+json">${JSON.stringify(data).replace(/</g, "\\u003c")}</script>`;
+}
+
+async function serveEquipment(req, res) {
+  const c = getCatalogue();
+  const n = c.items.length;
+  res.set("Cache-Control", "public, max-age=0, must-revalidate");
+  res.type("html").send(
+    eqBase
+      .replace("<!--CAT_GRID-->", renderCatalogueGrid(c.items))
+      .replace("<!--CAT_CHIPS-->", renderCatalogueChips(c.categories, n))
+      .replace("<!--CAT_COUNT-->", n ? `${n} items in our inventory` : "Loading catalogue…")
+      .replace("<!--CAT_SCHEMA-->", renderCatalogueSchema(c.items))
+  );
+}
+app.get("/equipment", serveEquipment);
+
 // ---- AV Solutions page: inject the installation project gallery ----
 let avBase = "";
 try { avBase = readFileSync(join(PUBLIC, "av-solutions.html"), "utf8"); } catch {}
