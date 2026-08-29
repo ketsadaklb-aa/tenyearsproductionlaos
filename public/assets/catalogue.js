@@ -17,19 +17,7 @@
   var activeCat = "";
   var query = "";
 
-  // ---- nav: sticky background + mobile menu ----
-  var nav = document.getElementById("nav");
-  window.addEventListener("scroll", function () {
-    nav.classList.toggle("scrolled", window.scrollY > 30 || true);
-  }, { passive: true });
-  var burger = document.getElementById("burger");
-  if (burger) {
-    burger.addEventListener("click", function () {
-      document.getElementById("navLinks").classList.toggle("open");
-    });
-  }
-  var yr = document.getElementById("yr");
-  if (yr) yr.textContent = new Date().getFullYear();
+  // Header and mobile menu live in nav.js, shared by every page.
 
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {

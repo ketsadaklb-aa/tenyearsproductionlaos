@@ -2,28 +2,7 @@
 (function () {
   "use strict";
 
-  // ---- sticky nav background ----
-  var nav = document.getElementById("nav");
-  function onScroll() {
-    if (window.scrollY > 30) nav.classList.add("scrolled");
-    else nav.classList.remove("scrolled");
-  }
-  window.addEventListener("scroll", onScroll, { passive: true });
-  onScroll();
-
-  // ---- mobile menu ----
-  var burger = document.getElementById("burger");
-  var navLinks = document.getElementById("navLinks");
-  if (burger) {
-    burger.addEventListener("click", function () {
-      navLinks.classList.toggle("open");
-    });
-    navLinks.querySelectorAll("a").forEach(function (a) {
-      a.addEventListener("click", function () {
-        navLinks.classList.remove("open");
-      });
-    });
-  }
+  // Header and mobile menu live in nav.js, shared by every page.
 
   // ---- scroll reveal ----
   var io = new IntersectionObserver(
