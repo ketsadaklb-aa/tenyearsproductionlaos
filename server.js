@@ -283,12 +283,14 @@ function renderAvBrands(rows) {
   if (!rows.length) return "";
   const items = rows
     .map((r) => {
+      // With no logo file the plate carries the name as a wordmark, so the
+      // name line underneath would just repeat it.
       const mark = r.logo_url
         ? `<img loading="lazy" decoding="async" src="${esc(r.logo_url)}" alt="${esc(r.name)}" />`
         : `<span class="bm-word">${esc(r.name)}</span>`;
       return `<li class="bm-item">
             <span class="bm-mark">${mark}</span>
-            <span class="bm-name">${esc(r.name)}</span>
+            ${r.logo_url ? `<span class="bm-name">${esc(r.name)}</span>` : ""}
             ${r.category ? `<span class="bm-cat">${esc(r.category)}</span>` : ""}
           </li>`;
     })
