@@ -169,7 +169,7 @@ async function seedIfEmpty() {
       ["Behringer", "behringer", "Mixing & amplification"],
       ["dbx", "dbx", "Signal processing"],
       ["Bosch", "bosch", "Conference & paging"],
-      ["VShow", "", "Stage & effect lighting"],
+      ["V-Show", "vshow", "Stage & effect lighting"],
       ["CM", "cm", "Cable & connectors"],
     ];
     let bi = 0;
